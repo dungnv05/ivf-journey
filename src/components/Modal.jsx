@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, Settings, Activity, Brain, ShieldCheck, Flame, Moon, Coffee } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const iconMap = {
   Heart,
@@ -69,6 +70,28 @@ const Modal = ({ isOpen, onClose, data }) => {
                 className="modal-detail" 
                 dangerouslySetInnerHTML={{ __html: data.detail }} 
               />
+              {data.hasDietCTA && (
+                <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                  <Link 
+                    to="/pregnancy-diet" 
+                    className="cta-button"
+                    onClick={onClose}
+                    style={{
+                      display: 'inline-block',
+                      backgroundColor: 'var(--primary)',
+                      color: 'white',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: '2rem',
+                      textDecoration: 'none',
+                      fontWeight: 'bold',
+                      boxShadow: '0 4px 14px rgba(236, 72, 153, 0.4)',
+                      transition: 'transform 0.2s',
+                    }}
+                  >
+                    Chế độ ăn uống chi tiết
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>

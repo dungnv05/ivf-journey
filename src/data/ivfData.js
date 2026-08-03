@@ -26,6 +26,7 @@ export const ivfStages = [
         content: 'Tăng cường chất đạm (Protein), ăn đa dạng chất và uống đủ 2-3 lít nước mỗi ngày.',
         iconName: 'Heart',
         animationType: 'pulse',
+        hasDietCTA: true,
         detail: '<p>Chất lượng trứng phụ thuộc rất nhiều vào dinh dưỡng nạp vào:</p><ul><li><strong>Thực phẩm giàu Đạm:</strong> Thịt bò, lòng trắng trứng gà, thịt gà, các loại cá biển (đặc biệt cá hồi giàu Omega-3 giúp giảm phản ứng viêm).</li><li><strong>Chất béo tốt và Vitamin:</strong> Quả bơ, dầu oliu, các loại hạt khô (óc chó, macca), rau xanh lá đậm.</li><li><strong>Nước và Điện giải:</strong> Việc uống nhiều nước là bắt buộc. Sau chọc hút, bổ sung nước giàu điện giải (như Oresol, nước dừa non) giúp đẩy nhanh đào thải dịch thừa trong ổ bụng, phòng tránh OHSS.</li></ul>'
       },
       {
@@ -49,6 +50,7 @@ export const ivfStages = [
         content: 'Không ăn thức ăn nhanh, đồ nhiều dầu mỡ, đồ chiên rán và thức ăn chứa nhiều đường tinh luyện.',
         iconName: 'Flame',
         animationType: 'spin',
+        hasDietCTA: true,
         detail: '<p>Đường tinh luyện và chất béo chuyển hóa bão hòa gây ra phản ứng viêm toàn thân, làm suy giảm chất lượng tế bào trứng.</p><ul><li>Tuyệt đối tránh: Trà sữa, bánh kẹo ngọt, xúc xích, đồ hộp. Hóa chất trong thực phẩm công nghiệp làm rối loạn hệ nội tiết.</li><li>Tuyệt đối không uống rượu bia, không hút thuốc lá.</li></ul>'
       },
       {
@@ -87,6 +89,7 @@ export const ivfStages = [
         content: 'Ăn thực phẩm ấm bụng, nhịn tiểu nhẹ trước khi siêu âm chuyển phôi.',
         iconName: 'Coffee',
         animationType: 'pulse',
+        hasDietCTA: true,
         detail: '<p>Khi bàng quang chứa nước tiểu, nó đẩy tử cung ngả về phía sau để bác sĩ nhìn rõ hơn trên siêu âm đường bụng, đồng thời làm thẳng góc cổ tử cung để dễ đưa ống thông vào. Chỉ cần nhịn vừa phải, nhịn quá căng gây đau tức và co thắt tử cung.</p><p>Ăn uống các món cháo, canh súp ấm, dễ tiêu hóa để chống rối loạn tiêu hóa.</p>'
       },
       {
@@ -110,6 +113,7 @@ export const ivfStages = [
         content: 'Tuyệt đối kiêng ăn đu đủ xanh, rau ngót, khổ qua, đồ tái sống.',
         iconName: 'Flame',
         animationType: 'spin',
+        hasDietCTA: true,
         detail: '<p>Loại bỏ thực phẩm kích thích cơ trơn tử cung ra khỏi thực đơn vì chúng dễ gây co bóp đẩy phôi ra ngoài.</p><ul><li><strong>Đu đủ xanh, rau ngót, rau răm:</strong> Chứa enzyme papain, papaverin gây co thắt tử cung mạnh.</li><li><strong>Minh oan cho Dứa:</strong> Nhiều người kiêng dứa tuyệt đối vì sợ chất bromelain gây sảy thai. Tuy nhiên hàm lượng bromelain trong quả dứa (đặc biệt phần thịt) rất nhỏ, ăn một lượng dứa vừa phải không hề gây hại mà còn cung cấp vitamin C.</li><li><strong>Đồ sống:</strong> Tránh gỏi cá, sushi để đề phòng tiêu chảy nhiễm khuẩn, gây áp lực lên ổ bụng.</li></ul>'
       },
       {
@@ -136,10 +140,10 @@ export const ivfStages = [
     knowledge: [
       {
         title: 'Dấu hiệu giả & Xét nghiệm Beta',
-        content: 'Triệu chứng cơ thể thường là do thuốc nội tiết. Xét nghiệm máu Beta-HCG > 25 mIU/mL khẳng định có thai.',
+        content: 'Triệu chứng cơ thể thường là do thuốc nội tiết. Xét nghiệm máu Beta-HCG giúp khẳng định có thai và đánh giá sức khỏe phôi.',
         iconName: 'Activity',
         animationType: 'pulse',
-        detail: '<p>Các thuốc hỗ trợ hoàng thể (Progesterone dạng đặt, tiêm) gây ra tác dụng phụ y hệt dấu hiệu mang thai. Căng ngực, buồn nôn, đau bụng dưới đều có thể do thuốc. Hoàn toàn không có triệu chứng gì cũng không có nghĩa là thất bại.</p><p>Ngày 12-14 sau chuyển phôi, xét nghiệm máu đo Beta-HCG là tiêu chuẩn y khoa chung: < 5 mIU/mL là âm tính; 5-25 là vùng nghi ngờ; và <strong>> 25 mIU/mL khẳng định bạn đã mang thai</strong>.</p>'
+        detail: '<p>Các thuốc hỗ trợ hoàng thể (Progesterone dạng đặt, tiêm) gây ra tác dụng phụ y hệt dấu hiệu mang thai. Căng ngực, buồn nôn, đau bụng dưới đều có thể do thuốc. Hoàn toàn không có triệu chứng gì cũng không có nghĩa là thất bại.</p><p>Vào mốc 14 ngày sau chuyển phôi, xét nghiệm máu đo Beta-HCG là tiêu chuẩn y khoa chung để xác định có thai (Beta > 25 mIU/mL). Tuy nhiên, để đánh giá <strong>phôi thai đang phát triển khỏe mạnh</strong> (khi chuyển 1 phôi), các mốc an toàn thường được kỳ vọng là:</p><ul><li><strong>Phôi ngày 3:</strong> Chỉ số Beta HCG thường > 100 mIU/mL.</li><li><strong>Phôi ngày 5:</strong> Chỉ số Beta HCG thường > 200 mIU/mL.</li></ul><p><em>Lưu ý quan trọng:</em> Con số đầu tiên chỉ là điểm xuất phát. Yếu tố quyết định sự phát triển của thai kỳ là tốc độ tăng trưởng của Beta (thường tăng gấp rưỡi đến gấp đôi sau mỗi 48 giờ ở giai đoạn đầu).</p>'
       }
     ],
     dos: [
@@ -148,6 +152,7 @@ export const ivfStages = [
         content: 'Ăn nhiều chất xơ, đu đủ chín, cháo yến mạch, uống nhiều nước để chống táo bón.',
         iconName: 'Coffee',
         animationType: 'bounce',
+        hasDietCTA: true,
         detail: '<p>Progesterone làm giãn cơ trơn ruột, gây táo bón cực kỳ nặng. Táo bón khiến bạn phải rặn mạnh, tạo áp lực nguy hiểm lên tử cung.</p><p>Uống nhiều nước, ăn khoai lang luộc, sữa chua men vi sinh. Nếu táo bón quá nặng, cần nhờ bác sĩ kê thuốc làm mềm phân (như Duphalac), tuyệt đối không cố rặn.</p>'
       },
       {
@@ -164,6 +169,7 @@ export const ivfStages = [
         content: 'Không uống rượu bia, thuốc lá, đồ ăn quá cay nóng. Hạn chế cafein < 200mg/ngày.',
         iconName: 'Flame',
         animationType: 'spin',
+        hasDietCTA: true,
         detail: '<p>Đảm bảo môi trường máu tinh khiết cho phôi thai non nớt.</p><ul><li><strong>Cafein:</strong> Dù cafein làm co thắt mạch máu, nhưng WHO và ACOG khẳng định thai phụ có thể tiêu thụ <strong>dưới 200mg cafein/ngày</strong> (1 cốc nhỏ) mà không làm tăng nguy cơ sảy thai. Chỉ cần không uống quá nhiều.</li><li>Gia vị quá cay nóng (ớt, tiêu) gây kích ứng dạ dày ruột, làm trầm trọng thêm táo bón.</li></ul>'
       },
       {
@@ -186,6 +192,7 @@ export const ivfStages = [
         content: 'Axit Folic ngừa dị tật ống thần kinh. Khám tim thai mốc 6-8 tuần, đo độ mờ da gáy mốc 12 tuần.',
         iconName: 'Heart',
         animationType: 'pulse',
+        hasDietCTA: true,
         detail: '<p>Ống thần kinh thai nhi khép kín ngay từ tuần thứ 4 đến tuần thứ 6. Việc uống đủ Axit Folic từ sớm là cực kỳ quan trọng để phòng ngừa dị tật não và cột sống.</p><ul><li><strong>Siêu âm tuần 6-8:</strong> Nghe nhịp đập nhanh (120-160 nhịp/phút) của tim thai.</li><li><strong>Mốc 12 tuần:</strong> Siêu âm hình thái sớm đo độ mờ da gáy, kết hợp xét nghiệm máu NIPT (phân tích ADN tự do của thai) giúp sàng lọc hội chứng Down, Patau, Edwards chính xác >99%.</li></ul>'
       }
     ],
@@ -195,6 +202,7 @@ export const ivfStages = [
         content: 'Không bao giờ được tự ý ngưng thuốc nội tiết. Ăn chia nhỏ bữa để giảm nghén.',
         iconName: 'Coffee',
         animationType: 'bounce',
+        hasDietCTA: true,
         detail: '<p>Thai IVF (đặc biệt chuyển phôi trữ) hoàn toàn không có hoàng thể tự tiết nội tiết. Phải DUY TRÌ dùng Progesterone kéo dài đến tuần 8-10 (khi nhau thai tự hoạt động). Ngừng thuốc sớm sẽ sảy thai ngay lập tức.</p><p>Để giảm ốm nghén, hãy chia nhỏ thành 5-6 bữa ăn/ngày, không để bụng rỗng. Ăn bánh quy khô buổi sáng, tránh mùi kích thích.</p>'
       },
       {
@@ -211,6 +219,7 @@ export const ivfStages = [
         content: 'Tuyệt đối không ăn đu đủ xanh, rau ngót, khổ qua.',
         iconName: 'Flame',
         animationType: 'bounce',
+        hasDietCTA: true,
         detail: '<p>Trong 3 tháng đầu, nhau thai chưa bám chắc vào thành tử cung nên mẹ cần giữ tử cung yên tĩnh tuyệt đối, tránh mọi tác nhân gây co thắt từ thực phẩm.</p><p>Các loại thực phẩm dưới đây chứa hoạt chất kích thích cơ trơn, có thể tạo ra các cơn co bóp tử cung, dẫn đến hiện tượng bóc tách túi thai, dọa sảy thai hoặc sảy thai:</p><ul><li><strong>Đu đủ xanh, rau ngót, mướp đắng (khổ qua):</strong> Chứa các enzyme và hoạt chất (như papain, papaverin, charantin) gây co thắt tử cung cực mạnh. Tuyệt đối không ăn dưới mọi hình thức (nấu chín hay ăn sống).</li><li><strong>Rau răm, ngải cứu:</strong> Cũng gây kích thích tử cung và dễ gây xuất huyết trong những tháng đầu.</li><li><em>Lưu ý về quả dứa: Nhiều mẹ bầu kiêng dứa hoàn toàn, nhưng thực tế quả dứa chín rất giàu vitamin C. Chất bromelain gây co thắt tử cung chủ yếu nằm ở phần lõi dứa cứng. Do đó, việc ăn 1-2 miếng thịt dứa chín hoàn toàn không gây nguy hiểm.</em></li></ul>'
       },
       {
@@ -225,6 +234,7 @@ export const ivfStages = [
         content: 'Không dọn dẹp vệ sinh phân mèo/chuồng thú cưng, thịt chưa nấu chín.',
         iconName: 'Activity',
         animationType: 'spin',
+        hasDietCTA: true,
         detail: '<p>Phòng tránh nhiễm ký sinh trùng Toxoplasma gondii gây dị tật bẩm sinh nghiêm trọng.</p><p>Nhiễm Toxoplasma trong 3 tháng đầu truyền sang thai nhi có thể gây não úng thủy, tổn thương thị lực (mù lòa). Hãy giao việc dọn dẹp phân thú cưng cho người khác.</p>'
       }
     ]
@@ -249,6 +259,7 @@ export const ivfStages = [
         content: 'Uống viên Canxi buổi sáng, Sắt uống cách ít nhất 2 giờ (vào buổi trưa).',
         iconName: 'Coffee',
         animationType: 'bounce',
+        hasDietCTA: true,
         detail: '<p>Sắt và Canxi cạnh tranh hấp thu trong ruột. Uống cùng lúc Canxi sẽ cản trở cơ thể hấp thu Sắt.</p><p>Bé bắt đầu phát triển mạnh hệ xương. Uống Canxi buổi sáng. Uống Sắt vào buổi trưa/chiều, có thể uống cùng nước cam (Vitamin C) để tăng hấp thu Sắt.</p>'
       },
       {
@@ -279,6 +290,7 @@ export const ivfStages = [
         content: 'Hạn chế bánh kẹo ngọt, trà sữa để phòng tránh tiểu đường thai kỳ.',
         iconName: 'Flame',
         animationType: 'bounce',
+        hasDietCTA: true,
         detail: '<p>Ăn quá nhiều đồ ngọt, tinh bột trắng không làm em bé to khỏe hơn mà chỉ làm mẹ béo phì, và dẫn tới Tiểu đường thai kỳ.</p>'
       },
       {
@@ -317,6 +329,7 @@ export const ivfStages = [
         content: 'Ăn nhạt, giảm muối, uống nhiều nước, ăn thực phẩm thanh mát.',
         iconName: 'Coffee',
         animationType: 'bounce',
+        hasDietCTA: true,
         detail: '<p>Ăn quá mặn sẽ giữ nước gây phù nề chân tay nghiêm trọng và tăng huyết áp.</p><p>Sát ngày sinh, có thể dùng các mẹo dân gian như chè mè đen, nước tía tô để hỗ trợ mềm cổ tử cung tự nhiên.</p>'
       },
       {
@@ -364,6 +377,7 @@ export const ivfStages = [
         content: 'Ăn đa dạng thịt cá rau củ, uống 3 lít nước ấm/sữa ấm liên tục mỗi ngày.',
         iconName: 'Coffee',
         animationType: 'bounce',
+        hasDietCTA: true,
         detail: '<p>Sữa mẹ được tạo ra từ Nước, Máu mẹ và nội tiết tố.</p><p>Cơ thể mẹ mất máu nhiều cần bổ sung cháo móng giò, thịt bò, cá hồi, tôm, rau luộc (rau lang, đu đủ chín nhuận tràng). Trước khi bú uống 1 ly nước ấm để kích sữa.</p>'
       },
       {

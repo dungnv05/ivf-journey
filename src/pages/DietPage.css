@@ -1,0 +1,83 @@
+.diet-page-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.diet-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.diet-section {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.dos-section {
+  border-top: 6px solid #10b981;
+}
+
+.donts-section {
+  border-top: 6px solid #ef4444;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  font-size: 1.8rem;
+  color: var(--text-dark);
+}
+
+.diet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.diet-card {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid #10b981;
+}
+
+.danger-card {
+  border-left: 4px solid #ef4444;
+  background: #fef2f2;
+}
+
+.diet-card h3 {
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.diet-card p {
+  color: var(--text-main);
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.diet-card ul {
+  padding-left: 1.2rem;
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+.diet-card li {
+  margin-bottom: 0.5rem;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
+}
