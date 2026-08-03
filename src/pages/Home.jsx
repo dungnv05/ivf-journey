@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Timeline from '../components/Timeline';
 import StageContent from '../components/StageContent';
 import Modal from '../components/Modal';
@@ -54,7 +55,9 @@ function Home() {
           to="/pregnancy-diet" 
           className="cta-button"
           style={{
-            display: 'inline-block',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
             backgroundColor: 'var(--primary)',
             color: 'white',
             padding: '0.8rem 1.8rem',
@@ -65,7 +68,14 @@ function Home() {
             transition: 'all 0.3s ease'
           }}
         >
-          🍎 Cẩm nang Dinh dưỡng IVF
+          <motion.span
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+            style={{ display: 'inline-block' }}
+          >
+            🍎
+          </motion.span>
+          Cẩm nang dinh dưỡng IVF ở đây
         </Link>
       </header>
 
