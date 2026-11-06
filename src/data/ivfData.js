@@ -1,9 +1,57 @@
+export const journeyMeta = {
+  eyebrow: 'Cẩm nang tường thuật theo từng chặng • Bản mẫu giáo dục sức khỏe',
+  title: 'Hành Trình Đón Con Yêu',
+  dek: 'Từ những mũi tiêm nội tiết đầu tiên đến khoảnh khắc da kề da sau sinh — bản đồ 7 chương giúp gia đình đi qua hành trình IVF bằng sự hiểu biết khoa học, nhịp độ bình tĩnh và tâm thế chủ động.',
+  readingTime: '10 phút đọc',
+  editionNote: 'Tổng hợp kiến thức y khoa tham khảo (ASRM / ESHRE / WHO / ACOG)',
+  interactionHint: 'Cuộn trang theo mạch truyện hoặc chọn chế độ "Từng giai đoạn" để tập trung vào một chặng. Trong mỗi chương, chuyển đổi giữa 3 góc nhìn (Kiến thức • Nên làm • Cần tránh) và chạm vào từng thẻ để đọc phân tích chuyên sâu.',
+  disclaimer: 'Lưu ý: Toàn bộ nội dung và số liệu trên trang là dữ liệu mô phỏng phục vụ mục đích minh họa giao diện và giáo dục sức khỏe tổng quát, hoàn toàn không thay thế chỉ định cá nhân hóa của bác sĩ chuyên khoa hỗ trợ sinh sản.',
+  credits: [
+    { role: 'Biên tập cấu trúc & Nội dung mô phỏng', detail: 'Tổng hợp theo chuẩn khuyến cáo sản phụ khoa quốc tế (dữ liệu mẫu ẩn danh)' },
+    { role: 'Thiết kế trải nghiệm & Nhịp điệu thị giác', detail: 'Trình bày dạng mạch truyện từng chặng (Scrollytelling & Stepped Focus)' },
+    { role: 'Nguyên tắc hiển thị', detail: 'Một điểm nhấn trọng tâm mỗi chương • Tương phản cao • Hỗ trợ giảm chuyển động' }
+  ]
+};
+
 export const ivfStages = [
   {
     id: 'stage-1',
+    chapter: 'Chương 01',
+    shortLabel: 'Kích trứng & Tạo phôi',
+    timeframe: 'Ngày 1 – Ngày 14 chu kỳ',
     title: 'Kích Trứng & Tạo Phôi',
     iconName: 'Dna',
     description: 'Giai đoạn khởi đầu quan trọng, sử dụng thuốc để kích thích buồng trứng và sau đó kết hợp với tinh trùng để tạo phôi.',
+    narrativeLead: 'Hành trình bắt đầu từ những ngày đầu tiên của chu kỳ kinh nguyệt. Thay vì chỉ có một nang trứng trội tự nhiên, phác đồ nội tiết giúp nhiều nang trứng cùng lớn lên đồng đều để tối ưu cơ hội tạo phôi khỏe mạnh trong phòng Lab.',
+    pullQuote: 'Trong IVF, sự an toàn của buồng trứng và chất lượng từng tế bào trứng quan trọng hơn rất nhiều so với cuộc đua đếm số lượng.',
+    focalBeat: {
+      caption: 'Nhịp sinh học chương 01 • Từ nang noãn đến phôi nang Ngày 5',
+      keyWindow: '10–14 ngày tiêm nội tiết • Mốc Trigger chính xác 34–36 giờ',
+      biologicalFocus: 'Huy động đoàn hệ nang noãn phát triển đồng bộ, thu nhận trứng trưởng thành và nuôi cấy chọn lọc tự nhiên đến giai đoạn phôi nang (Blastocyst).',
+      safetyNotice: 'Cảnh báo an toàn: Báo ngay khi tăng cân nhanh, bụng căng tức hoặc tiểu ít để dự phòng quá kích buồng trứng (OHSS) và tuyệt đối tránh vặn mình gây xoắn buồng trứng.',
+      steps: [
+        {
+          step: '01',
+          label: 'Kích thích & Canh nang',
+          meta: 'Ngày 2–10 • Siêu âm & xét nghiệm E2, LH'
+        },
+        {
+          step: '02',
+          label: 'Mũi tiêm Trigger',
+          meta: 'Nang đạt 18–20mm • Đúng giờ từng phút'
+        },
+        {
+          step: '03',
+          label: 'Chọc hút & Thụ tinh ICSI',
+          meta: 'Sau 34–36h • Thủ thuật 15–20 phút'
+        },
+        {
+          step: '04',
+          label: 'Nuôi phôi Ngày 5 & PGT',
+          meta: 'Chọn lọc phôi nang • Sàng lọc NST'
+        }
+      ]
+    },
     knowledge: [
       {
         title: 'Hiểu về Kích Trứng',
@@ -71,9 +119,42 @@ export const ivfStages = [
   },
   {
     id: 'stage-2',
+    chapter: 'Chương 02',
+    shortLabel: 'Chuyển phôi',
+    timeframe: 'Ngày chuyển phôi (ET / FET)',
     title: 'Chuyển Phôi',
     iconName: 'Baby',
     description: 'Thời khắc hồi hộp nhất: Đưa phôi thai khỏe mạnh vào buồng tử cung của người mẹ để bắt đầu thai kỳ.',
+    narrativeLead: 'Khi niêm mạc tử cung đạt độ dày và cấu trúc ba lá lý tưởng, Progesterone sẽ mở ra "cửa sổ làm tổ". Thủ thuật chuyển phôi diễn ra nhẹ nhàng trong vài phút dưới hướng dẫn siêu âm, mở đầu cho sự gắn kết giữa phôi và cơ thể mẹ.',
+    pullQuote: 'Đi bộ nhẹ nhàng sau chuyển phôi giúp tăng tưới máu tử cung; nằm bất động trên giường không làm tăng tỷ lệ đậu thai.',
+    focalBeat: {
+      caption: 'Nhịp sinh học chương 02 • Cửa sổ làm tổ & Chuyển đơn phôi (eSET)',
+      keyWindow: 'Cửa sổ làm tổ 24–48 giờ • Thủ thuật 5–10 phút không đau',
+      biologicalFocus: 'Đồng bộ hóa độ mở của niêm mạc tử cung với tuổi phôi và duy trì tuần hoàn máu vùng chậu ổn định để phôi vùi làm tổ.',
+      safetyNotice: 'Thực hành chuẩn: Nhịn tiểu vừa phải trước thủ thuật để thẳng góc cổ tử cung; nghỉ 30 phút sau chuyển rồi đi lại nhẹ nhàng, tránh nằm liệt giường.',
+      steps: [
+        {
+          step: '01',
+          label: 'Chuẩn bị niêm mạc',
+          meta: 'Progesterone mở cửa sổ làm tổ 24–48h'
+        },
+        {
+          step: '02',
+          label: 'Nhịn tiểu vừa phải',
+          meta: 'Hỗ trợ siêu âm bụng & thẳng cổ tử cung'
+        },
+        {
+          step: '03',
+          label: 'Chuyển đơn phôi (eSET)',
+          meta: 'Ống thông mềm • Giảm nguy cơ đa thai'
+        },
+        {
+          step: '04',
+          label: 'Vận động nhẹ nhàng',
+          meta: 'Nghỉ 30 phút • Tăng tuần hoàn tử cung'
+        }
+      ]
+    },
     knowledge: [
       {
         title: 'Cửa sổ làm tổ & eSET',
@@ -134,9 +215,42 @@ export const ivfStages = [
   },
   {
     id: 'stage-3',
+    chapter: 'Chương 03',
+    shortLabel: 'Đợi kết quả (14N)',
+    timeframe: '14 ngày sau chuyển phôi (2WW)',
     title: 'Đợi Kết Quả (14 Ngày)',
     iconName: 'CalendarClock',
     description: '14 ngày chờ đợi phép màu (2ww). Giai đoạn cần sự kiên nhẫn và bình an nhất.',
+    narrativeLead: 'Hai tuần chờ đợi (Two-Week Wait) thường là quãng thời gian thử thách tâm lý nhất. Trong lúc phôi âm thầm thoát màng và kết nối với mạch máu niêm mạc, cơ thể mẹ có thể xuất hiện nhiều cảm giác dễ nhầm lẫn do thuốc hỗ trợ hoàng thể.',
+    pullQuote: 'Cảm giác căng ngực hay không có triệu chứng đều có thể do thuốc nội tiết — chỉ xét nghiệm máu Beta-HCG đúng lịch mới phản ánh chính xác.',
+    focalBeat: {
+      caption: 'Nhịp sinh học chương 03 • Quá trình làm tổ & Mốc Beta-HCG',
+      keyWindow: '14 ngày chờ đợi • Beta-HCG tăng 1.5–2 lần mỗi 48 giờ',
+      biologicalFocus: 'Tế bào nuôi của phôi bám sâu vào nội mạc tử cung và bắt đầu tiết hormone Beta-HCG vào máu mẹ.',
+      safetyNotice: 'Nguyên tắc tâm lý & y khoa: Không thử que nước tiểu sớm ở ngày 5–8 để tránh âm tính giả gây stress co thắt tử cung; ưu tiên chất xơ chống táo bón.',
+      steps: [
+        {
+          step: '01',
+          label: 'Phôi thoát màng & Bám rễ',
+          meta: 'Ngày 1–5 sau chuyển • Chưa tiết nhiều HCG'
+        },
+        {
+          step: '02',
+          label: 'Duy trì Progesterone',
+          meta: 'Giữ êm tử cung • Chống táo bón bằng chất xơ'
+        },
+        {
+          step: '03',
+          label: 'Xét nghiệm máu Ngày 14',
+          meta: 'Beta > 25 mIU/mL xác nhận có thai'
+        },
+        {
+          step: '04',
+          label: 'Theo dõi nhân đôi sau 48h',
+          meta: 'Đánh giá đà phát triển khỏe mạnh của phôi'
+        }
+      ]
+    },
     knowledge: [
       {
         title: 'Dấu hiệu giả & Xét nghiệm Beta',
@@ -183,9 +297,42 @@ export const ivfStages = [
   },
   {
     id: 'stage-4',
+    chapter: 'Chương 04',
+    shortLabel: '3 tháng đầu',
+    timeframe: 'Tuần 5 – Tuần 12 thai kỳ',
     title: '3 Tháng Đầu',
     iconName: 'Activity',
     description: 'Phôi thai đang hình thành các cơ quan trọng yếu. Giai đoạn nhạy cảm nhất của thai kỳ.',
+    narrativeLead: 'Sau tin vui Beta dương tính, thai kỳ bước vào tam cá nguyệt đầu tiên — giai đoạn kiến tạo ống thần kinh, tim thai và các cơ quan nền tảng. Với thai IVF, việc duy trì thuốc nội tiết hỗ trợ hoàng thể đúng chỉ định là chiếc cầu nối sống còn cho đến khi nhau thai hoàn thiện.',
+    pullQuote: 'Tuyệt đối không tự ý ngưng thuốc nội tiết trong 8–10 tuần đầu; hãy chia nhỏ bữa ăn và để cơ thể nghỉ ngơi khi cơn nghén ghé qua.',
+    focalBeat: {
+      caption: 'Nhịp sinh học chương 04 • Hình thành cơ quan & Sàng lọc quý 1',
+      keyWindow: 'Tim thai Tuần 6–8 • Đo độ mờ da gáy & NIPT Tuần 12',
+      biologicalFocus: 'Khép kín ống thần kinh (tuần 4–6), duy trì nội tiết ngoại sinh nuôi thai (đến tuần 8–10) và sàng lọc sớm bất thường nhiễm sắc thể.',
+      safetyNotice: 'Nguyên tắc bảo vệ phôi: Duy trì Axit Folic và thuốc dưỡng thai đúng giờ; tránh tuyệt đối thực phẩm gây co thắt tử cung, thịt tái sống và hóa mỹ phẩm chứa Retinol.',
+      steps: [
+        {
+          step: '01',
+          label: 'Ống thần kinh & Axit Folic',
+          meta: 'Tuần 4–6 • Phòng ngừa dị tật não & cột sống'
+        },
+        {
+          step: '02',
+          label: 'Siêu âm tim thai đầu tiên',
+          meta: 'Tuần 6–8 • Nhịp tim 120–160 lần/phút'
+        },
+        {
+          step: '03',
+          label: 'Duy trì thuốc hoàng thể',
+          meta: 'Đến tuần 8–10 • Khi nhau thai tự hoạt động'
+        },
+        {
+          step: '04',
+          label: 'Đo độ mờ da gáy & NIPT',
+          meta: 'Mốc 12 tuần • Sàng lọc NST chính xác cao'
+        }
+      ]
+    },
     knowledge: [
       {
         title: 'Sàng lọc dị tật & Bổ sung Axit Folic',
@@ -241,9 +388,42 @@ export const ivfStages = [
   },
   {
     id: 'stage-5',
+    chapter: 'Chương 05',
+    shortLabel: '3 tháng giữa',
+    timeframe: 'Tuần 13 – Tuần 27 thai kỳ',
     title: '3 Tháng Giữa',
     iconName: 'Stethoscope',
     description: 'Giai đoạn "trăng mật" của thai kỳ. Mẹ đã hết ốm nghén, bụng bắt đầu nhô lên, thai nhi phát triển mạnh mẽ.',
+    narrativeLead: 'Bước sang tam cá nguyệt thứ hai, cảm giác nghén dịu dần và năng lượng trở lại. Đây là giai đoạn hệ xương và thính giác của bé phát triển bứt phá, đồng thời là thời điểm vàng để khảo sát hình thái học chi tiết và tầm soát đái tháo đường thai kỳ.',
+    pullQuote: 'Canxi uống buổi sáng, Sắt uống buổi trưa cách nhau ít nhất 2 giờ — và tập thói quen nằm nghiêng trái để dòng máu nuôi con luôn dồi dào.',
+    focalBeat: {
+      caption: 'Nhịp sinh học chương 05 • Khảo sát hình thái & Tầm soát chuyển hóa',
+      keyWindow: 'Siêu âm 4D Tuần 22 • Nghiệm pháp đường huyết Tuần 24–28',
+      biologicalFocus: 'Hoàn thiện cấu trúc giải phẫu các hệ cơ quan, phát triển thính giác (tuần 18–20) và kiểm soát chuyển hóa đường huyết của mẹ.',
+      safetyNotice: 'Lưu ý thực hành: Tách thời điểm uống Sắt và Canxi tối thiểu 2 giờ; hạn chế tinh bột nhanh/đường ngọt và tránh nằm ngửa lâu gây chèn ép tĩnh mạch chủ.',
+      steps: [
+        {
+          step: '01',
+          label: 'Cảm nhận thai máy & Thính giác',
+          meta: 'Tuần 18–20 • Bắt đầu thai giáo âm thanh'
+        },
+        {
+          step: '02',
+          label: 'Siêu âm hình thái chi tiết',
+          meta: 'Tuần 22–24 • Khảo sát tim, cột sống, cơ quan'
+        },
+        {
+          step: '03',
+          label: 'Nghiệm pháp dung nạp đường',
+          meta: 'Tuần 24–28 • Uống 75g glucose, 3 mẫu máu'
+        },
+        {
+          step: '04',
+          label: 'Bổ sung Canxi & Sắt đúng nhịp',
+          meta: 'Cách nhau >= 2 giờ • Tập nằm nghiêng trái'
+        }
+      ]
+    },
     knowledge: [
       {
         title: 'Siêu âm hình thái & Xét nghiệm tiểu đường',
@@ -304,9 +484,42 @@ export const ivfStages = [
   },
   {
     id: 'stage-6',
+    chapter: 'Chương 06',
+    shortLabel: '3 tháng cuối',
+    timeframe: 'Tuần 28 – Tuần 40 thai kỳ',
     title: '3 Tháng Cuối',
     iconName: 'HeartPulse',
     description: 'Giai đoạn em bé tăng tốc hoàn thiện cân nặng và các cơ quan. Mẹ chuẩn bị vượt cạn.',
+    narrativeLead: 'Ở chặng nước rút, phổi và não bộ của bé hoàn thiện từng ngày trong khi cơ thể mẹ chuẩn bị cho cuộc chuyển dạ. Việc lắng nghe cử động thai mỗi ngày và kiểm soát huyết áp trở thành chiếc la bàn bảo vệ an toàn cho cả hai mẹ con.',
+    pullQuote: 'Ít nhất 10 cử động thai trong 2 giờ là tín hiệu bình an; bất kỳ dấu hiệu đau đầu, mờ mắt hay huyết áp >= 140/90 mmHg đều cần thăm khám ngay.',
+    focalBeat: {
+      caption: 'Nhịp sinh học chương 06 • Theo dõi sức khỏe thai & Chuẩn bị vượt cạn',
+      keyWindow: 'Đếm cử động thai (>=10 lần/2 giờ) • Đo CTG từ Tuần 32–36',
+      biologicalFocus: 'Tăng trưởng trọng lượng thai, theo dõi lượng nước ối - ngôi thai, biểu đồ tim thai cơn gò (CTG) và tầm soát tiền sản giật.',
+      safetyNotice: 'Cảnh giác sản khoa: Không xoa bụng hoặc kích thích đầu ti gây cơn gò sinh non; đi khám ngay nếu thai đạp yếu hoặc huyết áp >= 140/90 mmHg.',
+      steps: [
+        {
+          step: '01',
+          label: 'Đếm thai máy hàng ngày',
+          meta: 'Tối thiểu 10 cử động trong 2 giờ sau ăn'
+        },
+        {
+          step: '02',
+          label: 'Siêu âm tuần 32 & Đo CTG',
+          meta: 'Đánh giá cân nặng, nước ối, tim thai & cơn gò'
+        },
+        {
+          step: '03',
+          label: 'Kiểm soát huyết áp & Giảm mặn',
+          meta: 'Cảnh giác Tiền sản giật (>= 140/90 mmHg)'
+        },
+        {
+          step: '04',
+          label: 'Sẵn sàng giỏ đồ & Nhịp thở',
+          meta: 'Từ tuần 34 • Nhận biết dấu hiệu chuyển dạ'
+        }
+      ]
+    },
     knowledge: [
       {
         title: 'Mốc 32 tuần & Đo CTG',
@@ -359,9 +572,42 @@ export const ivfStages = [
   },
   {
     id: 'stage-7',
+    chapter: 'Chương 07',
+    shortLabel: 'Sinh & Sau sinh',
+    timeframe: 'Vượt cạn & 6 tuần hậu sản',
     title: 'Sinh & Sau Sinh',
     iconName: 'Footprints',
     description: 'Khoảnh khắc chào đón thiên thần nhỏ và bước vào hành trình làm mẹ đầy thử thách.',
+    narrativeLead: 'Hành trình IVF khép lại bằng tiếng khóc chào đời và mở ra chương mới của tình mẫu tử. Từ cái ôm da kề da đầu tiên đến những tuần lễ hồi phục hậu sản, người mẹ cần được chăm sóc bằng y học hiện đại, sự sẻ chia của gia đình và sự lắng nghe sức khỏe tinh thần.',
+    pullQuote: 'Bạn đã đi qua cả hành trình dài đầy nghị lực — giờ là lúc cơ thể và tâm hồn bạn xứng đáng được nghỉ ngơi, sẻ chia và chở che.',
+    focalBeat: {
+      caption: 'Nhịp sinh học chương 07 • Da kề da & Hồi phục hậu sản an toàn',
+      keyWindow: 'Da kề da ngay sau sinh • Vận động sớm sau 12–24 giờ',
+      biologicalFocus: 'Ổn định thân nhiệt - hô hấp sơ sinh qua tiếp xúc da kề da, kích hoạt phản xạ tiết sữa non giàu IgA và phục hồi thể chất - tâm lý mẹ.',
+      safetyNotice: 'An toàn hậu sản: Tuyệt đối không nằm than sưởi trong phòng kín (nguy cơ ngộ độc khí CO); giữ vệ sinh tắm ấm kín gió và chia sẻ ngay khi có dấu hiệu quá tải tâm lý.',
+      steps: [
+        {
+          step: '01',
+          label: 'Da kề da (Kangaroo)',
+          meta: 'Ngay sau sinh • Ổn định sinh hiệu & gọi sữa non'
+        },
+        {
+          step: '02',
+          label: 'Vận động sớm sau sinh',
+          meta: 'Sau 12–24h • Tống sản dịch & ngừa dính ruột'
+        },
+        {
+          step: '03',
+          label: 'Dinh dưỡng & 3L nước ấm',
+          meta: 'Ăn đa dạng • Vệ sinh tắm ấm phòng kín gió'
+        },
+        {
+          step: '04',
+          label: 'Bảo vệ tâm lý hậu sản',
+          meta: 'San sẻ việc chăm bé • Ngủ bù khi con ngủ'
+        }
+      ]
+    },
     knowledge: [
       {
         title: 'Sự kỳ diệu của da kề da (Kangaroo)',
