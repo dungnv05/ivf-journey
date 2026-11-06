@@ -33,7 +33,7 @@
   --focus-ring: #0369a1;
 
   /* System font stack only (Rule 7) */
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Outfit', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   /* Modular typography scale (Rule 8: body >= 16px on all viewports) */
   --text-xs: 0.8125rem;
