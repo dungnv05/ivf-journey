@@ -17,10 +17,10 @@ function DietPage() {
         color: 'var(--primary)', 
         textDecoration: 'none', 
         fontWeight: 'bold',
-        backgroundColor: 'white',
+        backgroundColor: 'var(--surface)',
         padding: '0.75rem 1.25rem',
         borderRadius: '2rem',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+        boxShadow: 'var(--shadow-md)',
         transition: 'transform 0.2s'
       }}>
         <ArrowLeft size={20} />
@@ -37,7 +37,7 @@ function DietPage() {
       <main className="diet-content">
         <section className="diet-section dos-section">
           <div className="section-header dos-header">
-            <CheckCircle2 size={32} color="#10b981" />
+            <CheckCircle2 size={32} color="var(--success)" />
             <h2>Thực Phẩm "Vàng" (Nên Ăn)</h2>
           </div>
           
@@ -76,7 +76,7 @@ function DietPage() {
 
         <section className="diet-section donts-section">
           <div className="section-header donts-header">
-            <XCircle size={32} color="#ef4444" />
+            <XCircle size={32} color="var(--danger)" />
             <h2>Thực Phẩm "Đỏ" (Tuyệt Đối Tránh)</h2>
           </div>
           

@@ -83,7 +83,7 @@
 }
 
 .mode-toggle-btn:hover {
-  background: rgba(15, 23, 42, 0.05);
+  background: var(--hover-tint);
 }
 
 .mode-toggle-btn.active {
@@ -115,7 +115,7 @@
   position: sticky;
   top: var(--space-3);
   z-index: 50;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--surface-translucent);
   backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-strong);
@@ -533,12 +533,12 @@
   height: 1.5rem;
   padding: 0 var(--space-2);
   border-radius: var(--radius-full);
-  background: rgba(15, 23, 42, 0.08);
+  background: var(--pill-muted-bg);
   font-size: var(--text-xs);
 }
 
 .lens-tab-btn.active .lens-count-pill {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--pill-active-bg);
   color: var(--surface);
 }
 
@@ -746,7 +746,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--backdrop);
   backdrop-filter: blur(6px);
   z-index: 1000;
   display: flex;
