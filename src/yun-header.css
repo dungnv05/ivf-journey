@@ -1,0 +1,12 @@
+yun-header{--yh-bg:color-mix(in srgb,#f6f1ea 84%,transparent);--yh-surface:#fff;--yh-ink:#2a2438;--yh-muted:#6b6478;--yh-primary:#a78bfa;--yh-on-primary:#1b1526;--yh-focus:#8b6ff0;--yh-border:#29203a1a;--yh-font:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;--yh-radius:12px}
+yun-header .brand{display:flex;align-items:center;gap:12px;min-width:0;text-decoration:none}
+yun-header .brand-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#8b6ff0,#2d8a74);color:#1b1526;box-shadow:0 10px 30px #29203a1a}
+yun-header .brand-icon svg{width:20px;height:20px}
+yun-header .brand-name{font-family:var(--yh-font);font-size:1.0625rem;font-weight:600;letter-spacing:.01em;color:var(--yh-ink)}
+yun-header .social-links{display:flex;align-items:center;gap:12px}
+yun-header .social-btn{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:42px;height:42px;padding:0;border-radius:12px;border:1px solid #29203a38;background:transparent;color:var(--yh-muted);text-decoration:none}
+yun-header .social-btn:hover{background:#f7f4fa;color:var(--yh-ink)}
+yun-header .social-btn svg{width:18px;height:18px}
+yun-header:not(:defined){display:block;height:64px}
+@media (max-width:640px){yun-header:not(:defined){height:56px}}
+#root:focus{outline:none}
