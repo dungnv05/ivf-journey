@@ -5,15 +5,39 @@ import { ArrowLeft, ArrowRight, BookOpen, CalendarDays } from 'lucide-react';
 import { allStories, getStory, thaiGiaoWeeks } from '../data/thaiGiao';
 import ThaiGiaoLibrary from '../components/ThaiGiaoLibrary';
 import ThaiGiaoStoryView from '../components/ThaiGiaoStoryView';
+import DueDateSyncPrompt from '../components/DueDateSyncPrompt';
+import {
+  confirmSessionGone,
+  getHeaderAuth,
+  onHeaderAuthChange,
+  onHeaderLogout,
+  readCsrfCookie,
+  refreshSession,
+} from '../lib/wwwAuth';
+import {
+  createDueDateApi,
+  decideAfterFailure,
+  decideDueDateSync,
+  decideSessionEnd,
+  isSyncLaterFor,
+  resolveLocalForUser,
+  setSyncLaterUser,
+} from '../lib/dueDateSync';
+import { createSaveQueue } from '../lib/dueDateSaveQueue';
 import './ThaiGiaoPage.css';
 
 const STORAGE_KEYS = {
   DUE_DATE: 'ivf_thaigiao_due_date',
+  DUE_OWNER: 'ivf_thaigiao_due_owner_v1',
+  DUE_UNCONFIRMED: 'ivf_thaigiao_due_unconfirmed_v1',
   READ_STORIES: 'ivf_thaigiao_read_stories',
   READING_PREFS: 'ivf_thaigiao_reading_prefs',
 };
 
 const MS_PER_DAY = 86400000;
+const SYNC_FAILED_NOTE =
+  'Chưa lưu được lên tài khoản, ngày trên máy vẫn được giữ.';
+const SESSION_EXPIRED_NOTE = 'Phiên đã hết hạn — đăng nhập lại để lưu';
 const FULL_TERM_DAYS = 280;
 const STORY_ID_PATTERN = /^w\d+-d[1-7]$/;
 
@@ -140,6 +164,50 @@ function saveDueDate(value) {
   }
 }
 
+function loadDueOwner() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return '';
+    return window.localStorage.getItem(STORAGE_KEYS.DUE_OWNER) || '';
+  } catch {
+    return '';
+  }
+}
+
+function saveDueOwner(userId) {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (typeof userId === 'string' && userId) {
+      window.localStorage.setItem(STORAGE_KEYS.DUE_OWNER, userId);
+    } else {
+      window.localStorage.removeItem(STORAGE_KEYS.DUE_OWNER);
+    }
+  } catch {
+    // Ignore storage quota or privacy-mode errors
+  }
+}
+
+function loadDueUnconfirmed() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return false;
+    return window.localStorage.getItem(STORAGE_KEYS.DUE_UNCONFIRMED) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function saveDueUnconfirmed(value) {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (value) {
+      window.localStorage.setItem(STORAGE_KEYS.DUE_UNCONFIRMED, '1');
+    } else {
+      window.localStorage.removeItem(STORAGE_KEYS.DUE_UNCONFIRMED);
+    }
+  } catch {
+    // Ignore storage quota or privacy-mode errors
+  }
+}
+
 function loadReadStories() {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return [];
@@ -231,6 +299,46 @@ function ThaiGiaoPage() {
   const [libraryWeekOverride, setLibraryWeekOverride] = useState(null);
   const [speechSupported] = useState(() => detectSpeechSupport());
   const [speakingStoryId, setSpeakingStoryId] = useState(null);
+  const [auth, setAuth] = useState(() => getHeaderAuth());
+  const [syncStatus, setSyncStatus] = useState('idle');
+  const [syncPrompt, setSyncPrompt] = useState(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncNote, setSyncNote] = useState('');
+  const [retryTick, setRetryTick] = useState(0);
+
+  const mountedRef = useRef(true);
+  const syncSeqRef = useRef(0);
+  const dueDateRef = useRef(dueDate);
+  dueDateRef.current = dueDate;
+  const authRef = useRef(auth);
+  authRef.current = auth;
+  const lastSyncedRef = useRef(undefined);
+  const needsRetryRef = useRef(false);
+  const lastRetryAtRef = useRef(0);
+  const saveQueueRef = useRef(null);
+  const prevNonLoadingAuthStateRef = useRef(
+    auth.state !== 'loading' ? auth.state : null,
+  );
+  const prevAuthKeyRef = useRef(`${auth.state}:${auth.userId || ''}`);
+  const unconfirmedEditRef = useRef(loadDueUnconfirmed());
+  const setUnconfirmedEdit = useCallback((value) => {
+    const next = Boolean(value);
+    unconfirmedEditRef.current = next;
+    saveDueUnconfirmed(next);
+  }, []);
+
+  const dueDateApi = useMemo(
+    () =>
+      createDueDateApi({
+        fetchImpl:
+          typeof window !== 'undefined'
+            ? window.fetch.bind(window)
+            : undefined,
+        readCsrf: readCsrfCookie,
+        refresh: refreshSession,
+      }),
+    [],
+  );
 
   const speechSessionRef = useRef(0);
   const speechTimerRef = useRef(null);
@@ -328,6 +436,11 @@ function ThaiGiaoPage() {
     }
   }, [clearSpeechTimer]);
 
+  const stopNarrationRef = useRef(stopNarration);
+  stopNarrationRef.current = stopNarration;
+  const setSearchParamsRef = useRef(setSearchParams);
+  setSearchParamsRef.current = setSearchParams;
+
   useEffect(() => {
     return () => {
       stopNarration();
@@ -368,6 +481,434 @@ function ThaiGiaoPage() {
     ],
   );
 
+  const applyServerDueDate = useCallback(
+    (serverValue) => {
+      if (!serverValue || !parseIsoDate(serverValue)) return;
+      stopNarration();
+      setLibraryWeekOverride(null);
+      setDueDate(serverValue);
+      saveDueDate(serverValue);
+      const computed = computePregnancyFromDueDate(
+        serverValue,
+        weekBounds.minWeek,
+        weekBounds.maxWeek,
+      );
+      setSearchParams({
+        tuan: String(computed.week),
+        ngay: String(computed.day),
+      });
+    },
+    [stopNarration, weekBounds.minWeek, weekBounds.maxWeek, setSearchParams],
+  );
+
+  const applyServerDueDateRef = useRef(applyServerDueDate);
+  applyServerDueDateRef.current = applyServerDueDate;
+
+  const applySessionEndAction = useCallback(
+    (action) => {
+      if (action === 'clear') {
+        saveQueueRef.current?.cancel();
+        stopNarrationRef.current();
+        setLibraryWeekOverride(null);
+        setDueDate('');
+        dueDateRef.current = '';
+        saveDueDate('');
+        saveDueOwner('');
+        setUnconfirmedEdit(false);
+        setSearchParamsRef.current({});
+        setSyncPrompt(null);
+        setSyncBusy(false);
+        setSyncNote('');
+        setSyncStatus('idle');
+        return;
+      }
+      if (action === 'keep_notice') {
+        saveQueueRef.current?.cancel();
+        setSyncPrompt(null);
+        setSyncBusy(false);
+        setSyncStatus('local');
+        setSyncNote(SESSION_EXPIRED_NOTE);
+        return;
+      }
+      setSyncStatus('idle');
+    },
+    [setUnconfirmedEdit],
+  );
+  const applySessionEndActionRef = useRef(applySessionEndAction);
+  applySessionEndActionRef.current = applySessionEndAction;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const syncAuth = () => {
+      if (!mountedRef.current) return;
+      const next = getHeaderAuth();
+      setAuth((prev) =>
+        prev.state === next.state &&
+        prev.userId === next.userId &&
+        prev.reason === next.reason
+          ? prev
+          : next,
+      );
+    };
+    syncAuth();
+    const unsubscribeAuth = onHeaderAuthChange(syncAuth);
+    const unsubscribeLogout = onHeaderLogout(() => {
+      if (!mountedRef.current) return;
+      syncSeqRef.current += 1;
+      const action = decideSessionEnd({
+        trigger: 'logout',
+        hasUnconfirmedEdit: unconfirmedEditRef.current,
+      });
+      applySessionEndActionRef.current(action);
+    });
+    return () => {
+      mountedRef.current = false;
+      unsubscribeAuth();
+      unsubscribeLogout();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const triggerRetry = () => {
+      if (!needsRetryRef.current) return;
+      const currentAuth = authRef.current;
+      if (currentAuth.state !== 'signed-in' || !currentAuth.userId) return;
+      const now = Date.now();
+      if (now - lastRetryAtRef.current < 10000) return;
+      lastRetryAtRef.current = now;
+      setRetryTick((t) => t + 1);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        triggerRetry();
+      }
+    };
+
+    window.addEventListener('online', triggerRetry);
+    window.addEventListener('focus', triggerRetry);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('online', triggerRetry);
+      window.removeEventListener('focus', triggerRetry);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      syncStatus !== 'synced' ||
+      auth.state !== 'signed-in' ||
+      !auth.userId
+    ) {
+      return undefined;
+    }
+
+    const expectedUserId = auth.userId;
+    const queue = createSaveQueue({
+      put: (nextValue) => dueDateApi.put(nextValue),
+      getCurrentUserId: () => {
+        const current = getHeaderAuth();
+        return current.state === 'signed-in' ? current.userId : null;
+      },
+      expectedUserId,
+      onDone: (result, sentValue) => {
+        if (!mountedRef.current) return;
+        if (result.kind === 'ok') {
+          lastSyncedRef.current = result.dueDate || '';
+          needsRetryRef.current = false;
+          if (result.dueDate) {
+            saveDueOwner(expectedUserId);
+          } else {
+            saveDueOwner('');
+          }
+          const currentLocalNorm = dueDateRef.current || null;
+          if (sentValue === currentLocalNorm) {
+            setUnconfirmedEdit(false);
+          }
+          return;
+        }
+        setSyncStatus('local');
+        setSyncNote(SYNC_FAILED_NOTE);
+        needsRetryRef.current = true;
+      },
+    });
+
+    saveQueueRef.current = queue;
+    return () => {
+      queue.cancel();
+      if (saveQueueRef.current === queue) {
+        saveQueueRef.current = null;
+      }
+    };
+  }, [syncStatus, auth.state, auth.userId, dueDateApi]);
+
+  useEffect(() => {
+    syncSeqRef.current += 1;
+    const reqSeq = syncSeqRef.current;
+
+    const authKey = `${auth.state}:${auth.userId || ''}`;
+    if (prevAuthKeyRef.current !== authKey) {
+      prevAuthKeyRef.current = authKey;
+      lastSyncedRef.current = undefined;
+      needsRetryRef.current = false;
+      lastRetryAtRef.current = 0;
+    }
+
+    setSyncPrompt(null);
+    setSyncBusy(false);
+    setSyncNote('');
+
+    const prevNonLoading = prevNonLoadingAuthStateRef.current;
+    if (auth.state !== 'loading') {
+      prevNonLoadingAuthStateRef.current = auth.state;
+    }
+
+    if (auth.state === 'signed-out') {
+      const hasOwner = Boolean(loadDueOwner());
+      if (prevNonLoading === 'signed-in' || hasOwner) {
+        if (auth.reason === 'expired') {
+          const action = decideSessionEnd({
+            trigger: 'expired',
+            hasUnconfirmedEdit: unconfirmedEditRef.current,
+          });
+          applySessionEndActionRef.current(action);
+          return;
+        }
+
+        if (auth.reason === 'signed-out') {
+          setSyncStatus('idle');
+          (async () => {
+            const confirm = await confirmSessionGone();
+            if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+            const action = decideSessionEnd({
+              trigger: 'signed-out',
+              confirm,
+              hasUnconfirmedEdit: unconfirmedEditRef.current,
+            });
+            applySessionEndActionRef.current(action);
+          })();
+          return;
+        }
+      }
+      setSyncStatus('idle');
+      return;
+    }
+
+    if (auth.state !== 'signed-in' || !auth.userId) {
+      setSyncStatus('idle');
+      return;
+    }
+
+    const userId = auth.userId;
+    setSyncStatus('idle');
+
+    const clearForeignLocal = (storedLocal) => {
+      const owner = loadDueOwner();
+      const resolved = resolveLocalForUser({
+        local: storedLocal,
+        owner,
+        userId,
+      });
+      if (owner && owner !== userId) {
+        setUnconfirmedEdit(false);
+      }
+      if (storedLocal && !resolved) {
+        stopNarrationRef.current();
+        setLibraryWeekOverride(null);
+        setDueDate('');
+        dueDateRef.current = '';
+        saveDueDate('');
+        saveDueOwner('');
+        setSearchParamsRef.current({});
+      }
+      return resolved;
+    };
+
+    clearForeignLocal(dueDateRef.current);
+
+    (async () => {
+      const result = await dueDateApi.get();
+      if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+
+      if (result.kind !== 'ok') {
+        setSyncStatus('local');
+        if (result.kind !== 'disabled') {
+          needsRetryRef.current = true;
+        } else {
+          needsRetryRef.current = false;
+        }
+        return;
+      }
+
+      const wasRetry = needsRetryRef.current;
+      needsRetryRef.current = false;
+      const prevLastSynced = lastSyncedRef.current;
+      lastSyncedRef.current = result.dueDate || '';
+
+      const currentLocal = clearForeignLocal(dueDateRef.current);
+      const decision = wasRetry
+        ? decideAfterFailure({
+            local: currentLocal,
+            server: result.dueDate,
+            lastSynced: prevLastSynced,
+          })
+        : decideDueDateSync({
+            local: currentLocal,
+            server: result.dueDate,
+          });
+
+      if (decision === 'in_sync' || decision === 'none') {
+        if (currentLocal) {
+          saveDueOwner(userId);
+        }
+        setUnconfirmedEdit(false);
+        setSyncStatus('synced');
+        return;
+      }
+
+      if (decision === 'apply_server') {
+        applyServerDueDateRef.current(result.dueDate);
+        saveDueOwner(userId);
+        setUnconfirmedEdit(false);
+        setSyncStatus('synced');
+        return;
+      }
+
+      if (decision === 'upload_local') {
+        const liveAuth = getHeaderAuth();
+        if (liveAuth.state !== 'signed-in' || liveAuth.userId !== userId) {
+          setSyncStatus('local');
+          needsRetryRef.current = true;
+          return;
+        }
+        const putResult = await dueDateApi.put(currentLocal || null);
+        if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+        if (putResult.kind === 'ok') {
+          lastSyncedRef.current = putResult.dueDate || '';
+          if (currentLocal) {
+            saveDueOwner(userId);
+          } else {
+            saveDueOwner('');
+          }
+          setUnconfirmedEdit(false);
+          setSyncStatus('synced');
+        } else {
+          setSyncStatus('local');
+          setSyncNote(SYNC_FAILED_NOTE);
+          needsRetryRef.current = true;
+        }
+        return;
+      }
+
+      const sessionStorageObj =
+        typeof window !== 'undefined' ? window.sessionStorage : null;
+      if (isSyncLaterFor(sessionStorageObj, userId)) {
+        setSyncStatus('local');
+        return;
+      }
+
+      setSyncStatus('local');
+      setSyncPrompt({
+        kind: decision,
+        serverDate: result.dueDate || '',
+      });
+    })();
+  }, [auth.state, auth.userId, auth.reason, dueDateApi, retryTick, setUnconfirmedEdit]);
+
+  const handleUseServerDate = () => {
+    if (!syncPrompt?.serverDate) return;
+    applyServerDueDate(syncPrompt.serverDate);
+    if (authRef.current?.userId) {
+      saveDueOwner(authRef.current.userId);
+    }
+    setUnconfirmedEdit(false);
+    setSyncPrompt(null);
+    setSyncNote('');
+    setSyncStatus('synced');
+  };
+
+  const handleUseLocalDate = async () => {
+    if (!syncPrompt || syncBusy) return;
+    const targetDate = dueDateRef.current;
+
+    if (!targetDate) {
+      setSyncPrompt(null);
+      setSyncStatus('local');
+      return;
+    }
+
+    if (targetDate === syncPrompt.serverDate) {
+      setSyncPrompt(null);
+      lastSyncedRef.current = targetDate;
+      needsRetryRef.current = false;
+      if (authRef.current?.userId) {
+        saveDueOwner(authRef.current.userId);
+      }
+      setUnconfirmedEdit(false);
+      setSyncStatus('synced');
+      return;
+    }
+
+    const expectedUserId = authRef.current?.userId;
+    const liveAuth = getHeaderAuth();
+    if (
+      !expectedUserId ||
+      liveAuth.state !== 'signed-in' ||
+      liveAuth.userId !== expectedUserId
+    ) {
+      setSyncPrompt(null);
+      setSyncStatus('local');
+      return;
+    }
+
+    const reqSeq = ++syncSeqRef.current;
+    setSyncBusy(true);
+    setSyncNote('');
+    const result = await dueDateApi.put(targetDate);
+    if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+    setSyncBusy(false);
+    setSyncPrompt(null);
+    if (result.kind === 'ok') {
+      lastSyncedRef.current = result.dueDate || '';
+      needsRetryRef.current = false;
+      saveDueOwner(expectedUserId);
+      setUnconfirmedEdit(false);
+      setSyncStatus('synced');
+    } else {
+      setSyncStatus('local');
+      setSyncNote(SYNC_FAILED_NOTE);
+      needsRetryRef.current = true;
+    }
+  };
+
+  const handleLaterSync = () => {
+    if (authRef.current?.userId) {
+      const sessionStorageObj =
+        typeof window !== 'undefined' ? window.sessionStorage : null;
+      setSyncLaterUser(sessionStorageObj, authRef.current.userId);
+    }
+    setSyncPrompt(null);
+    setSyncStatus('local');
+  };
+
+  const syncPutIfSynced = (nextValue) => {
+    if (
+      syncStatus !== 'synced' ||
+      auth.state !== 'signed-in' ||
+      !auth.userId ||
+      !saveQueueRef.current
+    ) {
+      return;
+    }
+    setSyncNote('');
+    saveQueueRef.current.schedule(nextValue === null ? '' : nextValue);
+  };
+
   const handleDueDateChange = (event) => {
     const nextValue = event.target.value;
     stopNarration();
@@ -376,7 +917,12 @@ function ThaiGiaoPage() {
     if (!nextValue) {
       setDueDate('');
       saveDueDate('');
+      saveDueOwner('');
+      if (auth.state === 'signed-in' && auth.userId) {
+        setUnconfirmedEdit(true);
+      }
       setSearchParams({});
+      syncPutIfSynced(null);
       return;
     }
 
@@ -386,6 +932,11 @@ function ThaiGiaoPage() {
 
     setDueDate(nextValue);
     saveDueDate(nextValue);
+    if (auth.state === 'signed-in' && auth.userId) {
+      saveDueOwner(auth.userId);
+      setUnconfirmedEdit(true);
+    }
+    syncPutIfSynced(nextValue);
     const computed = computePregnancyFromDueDate(
       nextValue,
       weekBounds.minWeek,
@@ -402,7 +953,12 @@ function ThaiGiaoPage() {
     setLibraryWeekOverride(null);
     setDueDate('');
     saveDueDate('');
+    saveDueOwner('');
+    if (auth.state === 'signed-in' && auth.userId) {
+      setUnconfirmedEdit(true);
+    }
     setSearchParams({});
+    syncPutIfSynced(null);
   };
 
   const handleToggleRead = (storyId) => {
@@ -687,6 +1243,7 @@ function ThaiGiaoPage() {
               <label htmlFor="tg-due-date" className="tg-due-label">
                 Ngày dự sinh (EDD)
               </label>
+              <div className="dds-input-wrap">
               <div className="tg-due-input-row">
                 <input
                   id="tg-due-date"
@@ -704,6 +1261,26 @@ function ThaiGiaoPage() {
                     Xóa
                   </button>
                 ) : null}
+              </div>
+              {syncStatus === 'synced' ? (
+                <p className="dds-status">Đã lưu theo tài khoản YunDev</p>
+              ) : null}
+              {syncNote ? (
+                <p className="dds-note" role="status">
+                  {syncNote}
+                </p>
+              ) : null}
+              {syncPrompt ? (
+                <DueDateSyncPrompt
+                  kind={syncPrompt.kind}
+                  localDate={dueDate}
+                  serverDate={syncPrompt.serverDate}
+                  busy={syncBusy}
+                  onUseServer={handleUseServerDate}
+                  onUseLocal={handleUseLocalDate}
+                  onLater={handleLaterSync}
+                />
+              ) : null}
               </div>
             </div>
           </section>
