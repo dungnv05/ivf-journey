@@ -954,3 +954,14 @@
     position: static;
   }
 }
+
+/* === T-20261124-12 Thai Giao CTA (appended, additive) === */
+.cta-button-thai-giao {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border: 1px solid var(--primary);
+}
+.cta-button-thai-giao:hover {
+  background: var(--primary);
+  color: var(--surface);
+}
