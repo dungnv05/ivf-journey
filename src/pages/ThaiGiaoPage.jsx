@@ -824,7 +824,7 @@ function ThaiGiaoPage() {
 
     setDueDate(nextValue);
     saveDueDate(nextValue);
-    if (syncStatus === 'synced' && auth.state === 'signed-in' && auth.userId) {
+    if (auth.state === 'signed-in' && auth.userId) {
       saveDueOwner(auth.userId);
     }
     syncPutIfSynced(nextValue);

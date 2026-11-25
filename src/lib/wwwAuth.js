@@ -99,7 +99,7 @@ export function getHeaderAuth() {
     return { state: 'signed-in', userId: el.user.id };
   }
 
-  if (el.state === 'signed-out') {
+  if (el.state === 'signed-out' || el.state === 'expired') {
     return { state: 'signed-out', userId: null };
   }
 

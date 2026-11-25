@@ -565,6 +565,9 @@ test('getHeaderAuth maps header states and never reports signed-out for error/un
     el = { state: 'signed-out' };
     assert.deepEqual(getHeaderAuth(), { state: 'signed-out', userId: null });
 
+    el = { state: 'expired' };
+    assert.deepEqual(getHeaderAuth(), { state: 'signed-out', userId: null });
+
     el = { state: 'error' };
     assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
 
@@ -594,5 +597,24 @@ test('shouldClearOnSignOut ignores loading/error', () => {
       owner: 'user-1',
     }),
     false,
+  );
+});
+
+test('resolveLocalForUser clears unsynced edit owned by another user', () => {
+  assert.equal(
+    resolveLocalForUser({
+      local: '2026-07-01',
+      owner: 'user-a',
+      userId: 'user-b',
+    }),
+    '',
+  );
+  assert.equal(
+    resolveLocalForUser({
+      local: '2026-07-01',
+      owner: 'user-a',
+      userId: 'user-a',
+    }),
+    '2026-07-01',
   );
 });
