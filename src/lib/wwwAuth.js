@@ -87,7 +87,7 @@ export function getHeaderAuth() {
       ? document.querySelector('yun-header')
       : null;
 
-  if (!el || el.state === 'loading') {
+  if (!el) {
     return { state: 'loading', userId: null };
   }
 
@@ -99,7 +99,11 @@ export function getHeaderAuth() {
     return { state: 'signed-in', userId: el.user.id };
   }
 
-  return { state: 'signed-out', userId: null };
+  if (el.state === 'signed-out') {
+    return { state: 'signed-out', userId: null };
+  }
+
+  return { state: 'loading', userId: null };
 }
 
 export function onHeaderAuthChange(cb) {

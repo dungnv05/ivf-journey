@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { refreshSession } from '../src/lib/wwwAuth.js';
+import { getHeaderAuth, refreshSession } from '../src/lib/wwwAuth.js';
 import {
   createDueDateApi,
   decideAfterFailure,
@@ -545,4 +545,54 @@ test('sync-later helpers scope per user and ignore storage errors', () => {
   assert.equal(getSyncLaterUser(brokenStorage), '');
   assert.equal(isSyncLaterFor(brokenStorage, 'user-a'), false);
   assert.equal(isSyncLaterFor(null, 'user-a'), false);
+});
+
+test('getHeaderAuth maps header states and never reports signed-out for error/unknown', () => {
+  const originalDocument = globalThis.document;
+  let el = null;
+  try {
+    globalThis.document = { querySelector: () => el, cookie: '' };
+
+    el = null;
+    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+
+    el = { state: 'signed-in', user: { id: 'u1' } };
+    assert.deepEqual(getHeaderAuth(), { state: 'signed-in', userId: 'u1' });
+
+    el = { state: 'signed-in', user: null };
+    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+
+    el = { state: 'signed-out' };
+    assert.deepEqual(getHeaderAuth(), { state: 'signed-out', userId: null });
+
+    el = { state: 'error' };
+    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+
+    el = {};
+    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+
+    el = { state: 'weird' };
+    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+  } finally {
+    restoreDocument(originalDocument);
+  }
+});
+
+test('shouldClearOnSignOut ignores loading/error', () => {
+  assert.equal(
+    shouldClearOnSignOut({
+      prevState: 'signed-in',
+      nextState: 'loading',
+      owner: '',
+    }),
+    false,
+  );
+  assert.equal(
+    shouldClearOnSignOut({
+      prevState: 'signed-in',
+      nextState: 'loading',
+      owner: 'user-1',
+    }),
+    false,
+  );
 });
