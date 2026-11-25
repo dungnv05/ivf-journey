@@ -12,17 +12,26 @@ import {
   readCsrfCookie,
   refreshSession,
 } from '../lib/wwwAuth';
-import { createDueDateApi, decideDueDateSync } from '../lib/dueDateSync';
+import {
+  createDueDateApi,
+  decideAfterFailure,
+  decideDueDateSync,
+  isSyncLaterFor,
+  resolveLocalForUser,
+  setSyncLaterUser,
+  shouldClearOnSignOut,
+} from '../lib/dueDateSync';
+import { createSaveQueue } from '../lib/dueDateSaveQueue';
 import './ThaiGiaoPage.css';
 
 const STORAGE_KEYS = {
   DUE_DATE: 'ivf_thaigiao_due_date',
+  DUE_OWNER: 'ivf_thaigiao_due_owner_v1',
   READ_STORIES: 'ivf_thaigiao_read_stories',
   READING_PREFS: 'ivf_thaigiao_reading_prefs',
 };
 
 const MS_PER_DAY = 86400000;
-const SYNC_LATER_STORAGE_KEY = 'ivf_thaigiao_due_sync_later_v1';
 const SYNC_FAILED_NOTE =
   'Chưa lưu được lên tài khoản, ngày trên máy vẫn được giữ.';
 const FULL_TERM_DAYS = 280;
@@ -151,21 +160,25 @@ function saveDueDate(value) {
   }
 }
 
-function getSyncLaterUser() {
+function loadDueOwner() {
   try {
-    if (typeof window === 'undefined' || !window.sessionStorage) return '';
-    return window.sessionStorage.getItem(SYNC_LATER_STORAGE_KEY) || '';
+    if (typeof window === 'undefined' || !window.localStorage) return '';
+    return window.localStorage.getItem(STORAGE_KEYS.DUE_OWNER) || '';
   } catch {
     return '';
   }
 }
 
-function setSyncLaterUser(userId) {
+function saveDueOwner(userId) {
   try {
-    if (typeof window === 'undefined' || !window.sessionStorage) return;
-    window.sessionStorage.setItem(SYNC_LATER_STORAGE_KEY, userId);
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (typeof userId === 'string' && userId) {
+      window.localStorage.setItem(STORAGE_KEYS.DUE_OWNER, userId);
+    } else {
+      window.localStorage.removeItem(STORAGE_KEYS.DUE_OWNER);
+    }
   } catch {
-    // Ignore storage errors
+    // Ignore storage quota or privacy-mode errors
   }
 }
 
@@ -265,6 +278,7 @@ function ThaiGiaoPage() {
   const [syncPrompt, setSyncPrompt] = useState(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncNote, setSyncNote] = useState('');
+  const [retryTick, setRetryTick] = useState(0);
 
   const mountedRef = useRef(true);
   const syncSeqRef = useRef(0);
@@ -272,6 +286,14 @@ function ThaiGiaoPage() {
   dueDateRef.current = dueDate;
   const authRef = useRef(auth);
   authRef.current = auth;
+  const lastSyncedRef = useRef(undefined);
+  const needsRetryRef = useRef(false);
+  const lastRetryAtRef = useRef(0);
+  const saveQueueRef = useRef(null);
+  const prevNonLoadingAuthStateRef = useRef(
+    auth.state !== 'loading' ? auth.state : null,
+  );
+  const prevAuthKeyRef = useRef(`${auth.state}:${auth.userId || ''}`);
 
   const dueDateApi = useMemo(
     () =>
@@ -382,6 +404,11 @@ function ThaiGiaoPage() {
     }
   }, [clearSpeechTimer]);
 
+  const stopNarrationRef = useRef(stopNarration);
+  stopNarrationRef.current = stopNarration;
+  const setSearchParamsRef = useRef(setSearchParams);
+  setSearchParamsRef.current = setSearchParams;
+
   useEffect(() => {
     return () => {
       stopNarration();
@@ -442,6 +469,9 @@ function ThaiGiaoPage() {
     [stopNarration, weekBounds.minWeek, weekBounds.maxWeek, setSearchParams],
   );
 
+  const applyServerDueDateRef = useRef(applyServerDueDate);
+  applyServerDueDateRef.current = applyServerDueDate;
+
   useEffect(() => {
     mountedRef.current = true;
     const syncAuth = () => {
@@ -460,12 +490,119 @@ function ThaiGiaoPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const triggerRetry = () => {
+      if (!needsRetryRef.current) return;
+      const currentAuth = authRef.current;
+      if (currentAuth.state !== 'signed-in' || !currentAuth.userId) return;
+      const now = Date.now();
+      if (now - lastRetryAtRef.current < 10000) return;
+      lastRetryAtRef.current = now;
+      setRetryTick((t) => t + 1);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        triggerRetry();
+      }
+    };
+
+    window.addEventListener('online', triggerRetry);
+    window.addEventListener('focus', triggerRetry);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('online', triggerRetry);
+      window.removeEventListener('focus', triggerRetry);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      syncStatus !== 'synced' ||
+      auth.state !== 'signed-in' ||
+      !auth.userId
+    ) {
+      return undefined;
+    }
+
+    const expectedUserId = auth.userId;
+    const queue = createSaveQueue({
+      put: (nextValue) => dueDateApi.put(nextValue),
+      getCurrentUserId: () => {
+        const current = getHeaderAuth();
+        return current.state === 'signed-in' ? current.userId : null;
+      },
+      expectedUserId,
+      onDone: (result) => {
+        if (!mountedRef.current) return;
+        if (result.kind === 'ok') {
+          lastSyncedRef.current = result.dueDate || '';
+          needsRetryRef.current = false;
+          if (result.dueDate) {
+            saveDueOwner(expectedUserId);
+          } else {
+            saveDueOwner('');
+          }
+          return;
+        }
+        setSyncStatus('local');
+        setSyncNote(SYNC_FAILED_NOTE);
+        needsRetryRef.current = true;
+      },
+    });
+
+    saveQueueRef.current = queue;
+    return () => {
+      queue.cancel();
+      if (saveQueueRef.current === queue) {
+        saveQueueRef.current = null;
+      }
+    };
+  }, [syncStatus, auth.state, auth.userId, dueDateApi]);
+
+  useEffect(() => {
     syncSeqRef.current += 1;
     const reqSeq = syncSeqRef.current;
+
+    const authKey = `${auth.state}:${auth.userId || ''}`;
+    if (prevAuthKeyRef.current !== authKey) {
+      prevAuthKeyRef.current = authKey;
+      lastSyncedRef.current = undefined;
+      needsRetryRef.current = false;
+      lastRetryAtRef.current = 0;
+    }
 
     setSyncPrompt(null);
     setSyncBusy(false);
     setSyncNote('');
+
+    const prevNonLoading = prevNonLoadingAuthStateRef.current;
+    if (auth.state !== 'loading') {
+      prevNonLoadingAuthStateRef.current = auth.state;
+    }
+
+    if (
+      shouldClearOnSignOut({
+        prevState: prevNonLoading,
+        nextState: auth.state,
+        owner: loadDueOwner(),
+      })
+    ) {
+      saveQueueRef.current?.cancel();
+      stopNarrationRef.current();
+      setLibraryWeekOverride(null);
+      setDueDate('');
+      dueDateRef.current = '';
+      saveDueDate('');
+      saveDueOwner('');
+      setSearchParamsRef.current({});
+      setSyncStatus('idle');
+      return;
+    }
 
     if (auth.state !== 'signed-in' || !auth.userId) {
       setSyncStatus('idle');
@@ -475,33 +612,100 @@ function ThaiGiaoPage() {
     const userId = auth.userId;
     setSyncStatus('idle');
 
+    const clearForeignLocal = (storedLocal) => {
+      const resolved = resolveLocalForUser({
+        local: storedLocal,
+        owner: loadDueOwner(),
+        userId,
+      });
+      if (storedLocal && !resolved) {
+        stopNarrationRef.current();
+        setLibraryWeekOverride(null);
+        setDueDate('');
+        dueDateRef.current = '';
+        saveDueDate('');
+        saveDueOwner('');
+        setSearchParamsRef.current({});
+      }
+      return resolved;
+    };
+
+    clearForeignLocal(dueDateRef.current);
+
     (async () => {
       const result = await dueDateApi.get();
       if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
 
       if (result.kind !== 'ok') {
         setSyncStatus('local');
+        if (result.kind !== 'disabled') {
+          needsRetryRef.current = true;
+        } else {
+          needsRetryRef.current = false;
+        }
         return;
       }
 
-      const currentLocal = dueDateRef.current;
-      const decision = decideDueDateSync({
-        local: currentLocal,
-        server: result.dueDate,
-      });
+      const wasRetry = needsRetryRef.current;
+      needsRetryRef.current = false;
+      const prevLastSynced = lastSyncedRef.current;
+      lastSyncedRef.current = result.dueDate || '';
+
+      const currentLocal = clearForeignLocal(dueDateRef.current);
+      const decision = wasRetry
+        ? decideAfterFailure({
+            local: currentLocal,
+            server: result.dueDate,
+            lastSynced: prevLastSynced,
+          })
+        : decideDueDateSync({
+            local: currentLocal,
+            server: result.dueDate,
+          });
 
       if (decision === 'in_sync' || decision === 'none') {
+        if (currentLocal) {
+          saveDueOwner(userId);
+        }
         setSyncStatus('synced');
         return;
       }
 
       if (decision === 'apply_server') {
         applyServerDueDateRef.current(result.dueDate);
+        saveDueOwner(userId);
         setSyncStatus('synced');
         return;
       }
 
-      if (getSyncLaterUser() === userId) {
+      if (decision === 'upload_local') {
+        const liveAuth = getHeaderAuth();
+        if (liveAuth.state !== 'signed-in' || liveAuth.userId !== userId) {
+          setSyncStatus('local');
+          needsRetryRef.current = true;
+          return;
+        }
+        const putResult = await dueDateApi.put(currentLocal || null);
+        if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+        if (putResult.kind === 'ok') {
+          lastSyncedRef.current = putResult.dueDate || '';
+          if (currentLocal) {
+            saveDueOwner(userId);
+          } else {
+            saveDueOwner('');
+          }
+          setSyncStatus('synced');
+        } else {
+          setSyncStatus('local');
+          setSyncNote(SYNC_FAILED_NOTE);
+          needsRetryRef.current = true;
+        }
+        return;
+      }
+
+      const sessionStorageObj =
+        typeof window !== 'undefined' ? window.sessionStorage : null;
+      if (isSyncLaterFor(sessionStorageObj, userId)) {
         setSyncStatus('local');
         return;
       }
@@ -509,18 +713,17 @@ function ThaiGiaoPage() {
       setSyncStatus('local');
       setSyncPrompt({
         kind: decision,
-        localDate: currentLocal,
         serverDate: result.dueDate || '',
       });
     })();
-  }, [auth.state, auth.userId, dueDateApi]);
-
-  const applyServerDueDateRef = useRef(applyServerDueDate);
-  applyServerDueDateRef.current = applyServerDueDate;
+  }, [auth.state, auth.userId, dueDateApi, retryTick]);
 
   const handleUseServerDate = () => {
     if (!syncPrompt?.serverDate) return;
     applyServerDueDate(syncPrompt.serverDate);
+    if (authRef.current?.userId) {
+      saveDueOwner(authRef.current.userId);
+    }
     setSyncPrompt(null);
     setSyncNote('');
     setSyncStatus('synced');
@@ -528,49 +731,77 @@ function ThaiGiaoPage() {
 
   const handleUseLocalDate = async () => {
     if (!syncPrompt || syncBusy) return;
-    const targetDate = syncPrompt.localDate;
-    const reqSeq = ++syncSeqRef.current;
+    const targetDate = dueDateRef.current;
 
+    if (!targetDate) {
+      setSyncPrompt(null);
+      setSyncStatus('local');
+      return;
+    }
+
+    if (targetDate === syncPrompt.serverDate) {
+      setSyncPrompt(null);
+      lastSyncedRef.current = targetDate;
+      needsRetryRef.current = false;
+      if (authRef.current?.userId) {
+        saveDueOwner(authRef.current.userId);
+      }
+      setSyncStatus('synced');
+      return;
+    }
+
+    const expectedUserId = authRef.current?.userId;
+    const liveAuth = getHeaderAuth();
+    if (
+      !expectedUserId ||
+      liveAuth.state !== 'signed-in' ||
+      liveAuth.userId !== expectedUserId
+    ) {
+      setSyncPrompt(null);
+      setSyncStatus('local');
+      return;
+    }
+
+    const reqSeq = ++syncSeqRef.current;
     setSyncBusy(true);
     setSyncNote('');
-    const result = await dueDateApi.put(targetDate || null);
+    const result = await dueDateApi.put(targetDate);
     if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
     setSyncBusy(false);
     setSyncPrompt(null);
     if (result.kind === 'ok') {
+      lastSyncedRef.current = result.dueDate || '';
+      needsRetryRef.current = false;
+      saveDueOwner(expectedUserId);
       setSyncStatus('synced');
     } else {
       setSyncStatus('local');
       setSyncNote(SYNC_FAILED_NOTE);
+      needsRetryRef.current = true;
     }
   };
 
   const handleLaterSync = () => {
     if (authRef.current?.userId) {
-      setSyncLaterUser(authRef.current.userId);
+      const sessionStorageObj =
+        typeof window !== 'undefined' ? window.sessionStorage : null;
+      setSyncLaterUser(sessionStorageObj, authRef.current.userId);
     }
     setSyncPrompt(null);
     setSyncStatus('local');
   };
 
   const syncPutIfSynced = (nextValue) => {
-
     if (
       syncStatus !== 'synced' ||
       auth.state !== 'signed-in' ||
-      !auth.userId
+      !auth.userId ||
+      !saveQueueRef.current
     ) {
       return;
     }
     setSyncNote('');
-    const reqSeq = ++syncSeqRef.current;
-    dueDateApi.put(nextValue).then((result) => {
-      if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
-      if (result.kind !== 'ok') {
-        setSyncStatus('local');
-        setSyncNote(SYNC_FAILED_NOTE);
-      }
-    });
+    saveQueueRef.current.schedule(nextValue === null ? '' : nextValue);
   };
 
   const handleDueDateChange = (event) => {
@@ -581,8 +812,9 @@ function ThaiGiaoPage() {
     if (!nextValue) {
       setDueDate('');
       saveDueDate('');
+      saveDueOwner('');
       setSearchParams({});
-    syncPutIfSynced(null);
+      syncPutIfSynced(null);
       return;
     }
 
@@ -592,6 +824,9 @@ function ThaiGiaoPage() {
 
     setDueDate(nextValue);
     saveDueDate(nextValue);
+    if (syncStatus === 'synced' && auth.state === 'signed-in' && auth.userId) {
+      saveDueOwner(auth.userId);
+    }
     syncPutIfSynced(nextValue);
     const computed = computePregnancyFromDueDate(
       nextValue,
@@ -609,6 +844,7 @@ function ThaiGiaoPage() {
     setLibraryWeekOverride(null);
     setDueDate('');
     saveDueDate('');
+    saveDueOwner('');
     setSearchParams({});
     syncPutIfSynced(null);
   };
@@ -925,7 +1161,7 @@ function ThaiGiaoPage() {
               {syncPrompt ? (
                 <DueDateSyncPrompt
                   kind={syncPrompt.kind}
-                  localDate={syncPrompt.localDate}
+                  localDate={dueDate}
                   serverDate={syncPrompt.serverDate}
                   busy={syncBusy}
                   onUseServer={handleUseServerDate}

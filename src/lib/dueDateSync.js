@@ -4,6 +4,8 @@ const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MIN_ISO_DATE = '2020-01-01';
 const MAX_ISO_DATE = '2100-12-31';
 
+export const SYNC_LATER_STORAGE_KEY = 'ivf_thaigiao_due_sync_later_v1';
+
 export function isValidIsoDate(s) {
   if (typeof s !== 'string') return false;
   const match = ISO_DATE_PATTERN.exec(s);
@@ -23,15 +25,72 @@ export function isValidIsoDate(s) {
   );
 }
 
+function normalizeDate(value) {
+  return typeof value === 'string' && value ? value : '';
+}
+
 export function decideDueDateSync({ local, server }) {
-  const localNorm = typeof local === 'string' && local ? local : '';
-  const serverNorm = typeof server === 'string' && server ? server : '';
+  const localNorm = normalizeDate(local);
+  const serverNorm = normalizeDate(server);
 
   if (!localNorm && !serverNorm) return 'none';
   if (localNorm === serverNorm) return 'in_sync';
   if (!localNorm && serverNorm) return 'apply_server';
   if (localNorm && !serverNorm) return 'offer_upload';
   return 'conflict';
+}
+
+export function decideAfterFailure({ local, server, lastSynced }) {
+  if (lastSynced === undefined) {
+    return decideDueDateSync({ local, server });
+  }
+
+  const localNorm = normalizeDate(local);
+  const serverNorm = normalizeDate(server);
+  const lastSyncedNorm = normalizeDate(lastSynced);
+
+  if (serverNorm === lastSyncedNorm) {
+    return localNorm !== serverNorm ? 'upload_local' : 'in_sync';
+  }
+
+  return decideDueDateSync({ local, server });
+}
+
+export function shouldClearOnSignOut({ prevState, nextState, owner }) {
+  if (nextState !== 'signed-out') return false;
+  if (prevState === 'signed-in') return true;
+  if (typeof owner === 'string' && owner.length > 0) return true;
+  return false;
+}
+
+export function resolveLocalForUser({ local, owner, userId }) {
+  if (typeof owner === 'string' && owner.length > 0 && owner !== userId) {
+    return '';
+  }
+  return typeof local === 'string' ? local : '';
+}
+
+export function getSyncLaterUser(storage) {
+  try {
+    if (!storage || typeof storage.getItem !== 'function') return '';
+    return storage.getItem(SYNC_LATER_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setSyncLaterUser(storage, userId) {
+  try {
+    if (!storage || typeof storage.setItem !== 'function') return;
+    storage.setItem(SYNC_LATER_STORAGE_KEY, userId);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function isSyncLaterFor(storage, userId) {
+  if (typeof userId !== 'string' || !userId) return false;
+  return getSyncLaterUser(storage) === userId;
 }
 
 async function parseJsonSafe(response) {
@@ -42,13 +101,27 @@ async function parseJsonSafe(response) {
   }
 }
 
+function isRefreshOk(outcome) {
+  return outcome === 'ok' || outcome === true;
+}
+
 export function createDueDateApi({
   fetchImpl = typeof fetch !== 'undefined' ? fetch : undefined,
   readCsrf = readCsrfCookie,
   refresh = refreshSession,
   base = WWW_ORIGIN,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  random = Math.random,
 } = {}) {
   const endpoint = `${base}/api/pregnancy`;
+
+  async function runRefresh() {
+    try {
+      return await refresh();
+    } catch {
+      return 'failed';
+    }
+  }
 
   async function requestWithRetry(buildInit) {
     let attemptedRefresh = false;
@@ -71,16 +144,23 @@ export function createDueDateApi({
           return { kind: 'unauthorized' };
         }
         attemptedRefresh = true;
-        let refreshed = false;
-        try {
-          refreshed = Boolean(await refresh());
-        } catch {
-          refreshed = false;
+        let outcome = await runRefresh();
+        if (isRefreshOk(outcome)) {
+          continue;
         }
-        if (!refreshed) {
-          return { kind: 'unauthorized' };
+        if (outcome === 'retry') {
+          const rawRand = typeof random === 'function' ? random() : Math.random();
+          const clampedRand = Number.isFinite(rawRand)
+            ? Math.min(1, Math.max(0, rawRand))
+            : 0;
+          const delayMs = Math.round(150 + clampedRand * 250);
+          await sleep(delayMs);
+          outcome = await runRefresh();
+          if (isRefreshOk(outcome)) {
+            continue;
+          }
         }
-        continue;
+        return { kind: 'unauthorized' };
       }
 
       if (response.status === 503) {

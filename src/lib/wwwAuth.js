@@ -1,5 +1,19 @@
 export const WWW_ORIGIN = 'https://www.yundev.space';
 
+const REFRESH_SLOT_KEY = Symbol.for('yundev.auth.refresh.v1');
+
+function getRefreshSlot() {
+  let slot = globalThis[REFRESH_SLOT_KEY];
+  if (!slot || typeof slot !== 'object') {
+    slot = {
+      inFlight: null,
+      lastOkAt: Number.NEGATIVE_INFINITY,
+    };
+    globalThis[REFRESH_SLOT_KEY] = slot;
+  }
+  return slot;
+}
+
 export function readCsrfCookie(
   cookieString = typeof document !== 'undefined' ? document.cookie : '',
 ) {
@@ -20,26 +34,51 @@ export function readCsrfCookie(
   return '';
 }
 
-export async function refreshSession(
-  fetchImpl = typeof fetch !== 'undefined' ? fetch : undefined,
-) {
-  const csrf = readCsrfCookie();
-  if (!csrf || typeof fetchImpl !== 'function') {
-    return false;
+export function refreshSession({
+  fetchImpl = globalThis.fetch,
+  now = Date.now,
+} = {}) {
+  const slot = getRefreshSlot();
+  if (now() - slot.lastOkAt < 2000) {
+    return Promise.resolve('ok');
+  }
+  if (slot.inFlight) {
+    return slot.inFlight;
   }
 
-  try {
-    const response = await fetchImpl(`${WWW_ORIGIN}/api/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'x-csrf-token': csrf,
-      },
-    });
-    return response.status === 200;
-  } catch {
-    return false;
+  const csrf = readCsrfCookie();
+  if (!csrf || typeof fetchImpl !== 'function') {
+    return Promise.resolve('failed');
   }
+
+  const promise = (async () => {
+    try {
+      const response = await fetchImpl(`${WWW_ORIGIN}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'x-csrf-token': csrf,
+        },
+      });
+      if (response.status === 200) {
+        slot.lastOkAt = now();
+        return 'ok';
+      }
+      if (response.status === 409) {
+        return 'retry';
+      }
+      return 'failed';
+    } catch {
+      return 'failed';
+    }
+  })();
+
+  slot.inFlight = promise;
+  return promise.finally(() => {
+    if (slot.inFlight === promise) {
+      slot.inFlight = null;
+    }
+  });
 }
 
 export function getHeaderAuth() {
