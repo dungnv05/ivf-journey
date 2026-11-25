@@ -496,7 +496,7 @@ function ThaiGiaoPage() {
       }
 
       if (decision === 'apply_server') {
-        applyServerDueDate(result.dueDate);
+        applyServerDueDateRef.current(result.dueDate);
         setSyncStatus('synced');
         return;
       }
@@ -513,7 +513,10 @@ function ThaiGiaoPage() {
         serverDate: result.dueDate || '',
       });
     })();
-  }, [auth.state, auth.userId, dueDateApi, applyServerDueDate]);
+  }, [auth.state, auth.userId, dueDateApi]);
+
+  const applyServerDueDateRef = useRef(applyServerDueDate);
+  applyServerDueDateRef.current = applyServerDueDate;
 
   const handleUseServerDate = () => {
     if (!syncPrompt?.serverDate) return;
@@ -527,6 +530,7 @@ function ThaiGiaoPage() {
     if (!syncPrompt || syncBusy) return;
     const targetDate = syncPrompt.localDate;
     const reqSeq = ++syncSeqRef.current;
+
     setSyncBusy(true);
     setSyncNote('');
     const result = await dueDateApi.put(targetDate || null);
@@ -550,7 +554,7 @@ function ThaiGiaoPage() {
   };
 
   const syncPutIfSynced = (nextValue) => {
-    const reqSeq = ++syncSeqRef.current;
+
     if (
       syncStatus !== 'synced' ||
       auth.state !== 'signed-in' ||
@@ -559,6 +563,7 @@ function ThaiGiaoPage() {
       return;
     }
     setSyncNote('');
+    const reqSeq = ++syncSeqRef.current;
     dueDateApi.put(nextValue).then((result) => {
       if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
       if (result.kind !== 'ok') {
