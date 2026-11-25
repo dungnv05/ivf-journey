@@ -126,6 +126,11 @@ function Home() {
             <Utensils size={18} aria-hidden="true" />
             <span>Cẩm nang dinh dưỡng IVF</span>
           </Link>
+
+          <Link to="/thai-giao" className="cta-button cta-button-thai-giao">
+            <BookOpen size={18} aria-hidden="true" />
+            <span>Truyện thai giáo mỗi ngày</span>
+          </Link>
         </div>
 
         <div className="interaction-cue-banner" role="note">
