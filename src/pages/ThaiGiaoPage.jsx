@@ -5,6 +5,14 @@ import { ArrowLeft, ArrowRight, BookOpen, CalendarDays } from 'lucide-react';
 import { allStories, getStory, thaiGiaoWeeks } from '../data/thaiGiao';
 import ThaiGiaoLibrary from '../components/ThaiGiaoLibrary';
 import ThaiGiaoStoryView from '../components/ThaiGiaoStoryView';
+import DueDateSyncPrompt from '../components/DueDateSyncPrompt';
+import {
+  getHeaderAuth,
+  onHeaderAuthChange,
+  readCsrfCookie,
+  refreshSession,
+} from '../lib/wwwAuth';
+import { createDueDateApi, decideDueDateSync } from '../lib/dueDateSync';
 import './ThaiGiaoPage.css';
 
 const STORAGE_KEYS = {
@@ -14,6 +22,9 @@ const STORAGE_KEYS = {
 };
 
 const MS_PER_DAY = 86400000;
+const SYNC_LATER_STORAGE_KEY = 'ivf_thaigiao_due_sync_later_v1';
+const SYNC_FAILED_NOTE =
+  'Chưa lưu được lên tài khoản, ngày trên máy vẫn được giữ.';
 const FULL_TERM_DAYS = 280;
 const STORY_ID_PATTERN = /^w\d+-d[1-7]$/;
 
@@ -140,6 +151,24 @@ function saveDueDate(value) {
   }
 }
 
+function getSyncLaterUser() {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return '';
+    return window.sessionStorage.getItem(SYNC_LATER_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function setSyncLaterUser(userId) {
+  try {
+    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    window.sessionStorage.setItem(SYNC_LATER_STORAGE_KEY, userId);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 function loadReadStories() {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return [];
@@ -231,6 +260,31 @@ function ThaiGiaoPage() {
   const [libraryWeekOverride, setLibraryWeekOverride] = useState(null);
   const [speechSupported] = useState(() => detectSpeechSupport());
   const [speakingStoryId, setSpeakingStoryId] = useState(null);
+  const [auth, setAuth] = useState(() => getHeaderAuth());
+  const [syncStatus, setSyncStatus] = useState('idle');
+  const [syncPrompt, setSyncPrompt] = useState(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncNote, setSyncNote] = useState('');
+
+  const mountedRef = useRef(true);
+  const syncSeqRef = useRef(0);
+  const dueDateRef = useRef(dueDate);
+  dueDateRef.current = dueDate;
+  const authRef = useRef(auth);
+  authRef.current = auth;
+
+  const dueDateApi = useMemo(
+    () =>
+      createDueDateApi({
+        fetchImpl:
+          typeof window !== 'undefined'
+            ? window.fetch.bind(window)
+            : undefined,
+        readCsrf: readCsrfCookie,
+        refresh: refreshSession,
+      }),
+    [],
+  );
 
   const speechSessionRef = useRef(0);
   const speechTimerRef = useRef(null);
@@ -368,6 +422,152 @@ function ThaiGiaoPage() {
     ],
   );
 
+  const applyServerDueDate = useCallback(
+    (serverValue) => {
+      if (!serverValue || !parseIsoDate(serverValue)) return;
+      stopNarration();
+      setLibraryWeekOverride(null);
+      setDueDate(serverValue);
+      saveDueDate(serverValue);
+      const computed = computePregnancyFromDueDate(
+        serverValue,
+        weekBounds.minWeek,
+        weekBounds.maxWeek,
+      );
+      setSearchParams({
+        tuan: String(computed.week),
+        ngay: String(computed.day),
+      });
+    },
+    [stopNarration, weekBounds.minWeek, weekBounds.maxWeek, setSearchParams],
+  );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const syncAuth = () => {
+      if (!mountedRef.current) return;
+      const next = getHeaderAuth();
+      setAuth((prev) =>
+        prev.state === next.state && prev.userId === next.userId ? prev : next,
+      );
+    };
+    syncAuth();
+    const unsubscribe = onHeaderAuthChange(syncAuth);
+    return () => {
+      mountedRef.current = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    syncSeqRef.current += 1;
+    const reqSeq = syncSeqRef.current;
+
+    setSyncPrompt(null);
+    setSyncBusy(false);
+    setSyncNote('');
+
+    if (auth.state !== 'signed-in' || !auth.userId) {
+      setSyncStatus('idle');
+      return;
+    }
+
+    const userId = auth.userId;
+    setSyncStatus('idle');
+
+    (async () => {
+      const result = await dueDateApi.get();
+      if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+
+      if (result.kind !== 'ok') {
+        setSyncStatus('local');
+        return;
+      }
+
+      const currentLocal = dueDateRef.current;
+      const decision = decideDueDateSync({
+        local: currentLocal,
+        server: result.dueDate,
+      });
+
+      if (decision === 'in_sync' || decision === 'none') {
+        setSyncStatus('synced');
+        return;
+      }
+
+      if (decision === 'apply_server') {
+        applyServerDueDate(result.dueDate);
+        setSyncStatus('synced');
+        return;
+      }
+
+      if (getSyncLaterUser() === userId) {
+        setSyncStatus('local');
+        return;
+      }
+
+      setSyncStatus('local');
+      setSyncPrompt({
+        kind: decision,
+        localDate: currentLocal,
+        serverDate: result.dueDate || '',
+      });
+    })();
+  }, [auth.state, auth.userId, dueDateApi, applyServerDueDate]);
+
+  const handleUseServerDate = () => {
+    if (!syncPrompt?.serverDate) return;
+    applyServerDueDate(syncPrompt.serverDate);
+    setSyncPrompt(null);
+    setSyncNote('');
+    setSyncStatus('synced');
+  };
+
+  const handleUseLocalDate = async () => {
+    if (!syncPrompt || syncBusy) return;
+    const targetDate = syncPrompt.localDate;
+    const reqSeq = ++syncSeqRef.current;
+    setSyncBusy(true);
+    setSyncNote('');
+    const result = await dueDateApi.put(targetDate || null);
+    if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+    setSyncBusy(false);
+    setSyncPrompt(null);
+    if (result.kind === 'ok') {
+      setSyncStatus('synced');
+    } else {
+      setSyncStatus('local');
+      setSyncNote(SYNC_FAILED_NOTE);
+    }
+  };
+
+  const handleLaterSync = () => {
+    if (authRef.current?.userId) {
+      setSyncLaterUser(authRef.current.userId);
+    }
+    setSyncPrompt(null);
+    setSyncStatus('local');
+  };
+
+  const syncPutIfSynced = (nextValue) => {
+    const reqSeq = ++syncSeqRef.current;
+    if (
+      syncStatus !== 'synced' ||
+      auth.state !== 'signed-in' ||
+      !auth.userId
+    ) {
+      return;
+    }
+    setSyncNote('');
+    dueDateApi.put(nextValue).then((result) => {
+      if (!mountedRef.current || reqSeq !== syncSeqRef.current) return;
+      if (result.kind !== 'ok') {
+        setSyncStatus('local');
+        setSyncNote(SYNC_FAILED_NOTE);
+      }
+    });
+  };
+
   const handleDueDateChange = (event) => {
     const nextValue = event.target.value;
     stopNarration();
@@ -377,6 +577,7 @@ function ThaiGiaoPage() {
       setDueDate('');
       saveDueDate('');
       setSearchParams({});
+    syncPutIfSynced(null);
       return;
     }
 
@@ -386,6 +587,7 @@ function ThaiGiaoPage() {
 
     setDueDate(nextValue);
     saveDueDate(nextValue);
+    syncPutIfSynced(nextValue);
     const computed = computePregnancyFromDueDate(
       nextValue,
       weekBounds.minWeek,
@@ -403,6 +605,7 @@ function ThaiGiaoPage() {
     setDueDate('');
     saveDueDate('');
     setSearchParams({});
+    syncPutIfSynced(null);
   };
 
   const handleToggleRead = (storyId) => {
@@ -687,6 +890,7 @@ function ThaiGiaoPage() {
               <label htmlFor="tg-due-date" className="tg-due-label">
                 Ngày dự sinh (EDD)
               </label>
+              <div className="dds-input-wrap">
               <div className="tg-due-input-row">
                 <input
                   id="tg-due-date"
@@ -704,6 +908,26 @@ function ThaiGiaoPage() {
                     Xóa
                   </button>
                 ) : null}
+              </div>
+              {syncStatus === 'synced' ? (
+                <p className="dds-status">Đã lưu theo tài khoản YunDev</p>
+              ) : null}
+              {syncNote ? (
+                <p className="dds-note" role="status">
+                  {syncNote}
+                </p>
+              ) : null}
+              {syncPrompt ? (
+                <DueDateSyncPrompt
+                  kind={syncPrompt.kind}
+                  localDate={syncPrompt.localDate}
+                  serverDate={syncPrompt.serverDate}
+                  busy={syncBusy}
+                  onUseServer={handleUseServerDate}
+                  onUseLocal={handleUseLocalDate}
+                  onLater={handleLaterSync}
+                />
+              ) : null}
               </div>
             </div>
           </section>
