@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getHeaderAuth, refreshSession } from '../src/lib/wwwAuth.js';
+import {
+  confirmSessionGone,
+  getHeaderAuth,
+  onHeaderLogout,
+  refreshSession,
+} from '../src/lib/wwwAuth.js';
 import {
   createDueDateApi,
   decideAfterFailure,
+  decideSessionEnd,
   getSyncLaterUser,
   isSyncLaterFor,
   resolveLocalForUser,
@@ -554,28 +560,60 @@ test('getHeaderAuth maps header states and never reports signed-out for error/un
     globalThis.document = { querySelector: () => el, cookie: '' };
 
     el = null;
-    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'loading',
+      userId: null,
+      reason: null,
+    });
 
     el = { state: 'signed-in', user: { id: 'u1' } };
-    assert.deepEqual(getHeaderAuth(), { state: 'signed-in', userId: 'u1' });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'signed-in',
+      userId: 'u1',
+      reason: null,
+    });
 
     el = { state: 'signed-in', user: null };
-    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'loading',
+      userId: null,
+      reason: null,
+    });
 
     el = { state: 'signed-out' };
-    assert.deepEqual(getHeaderAuth(), { state: 'signed-out', userId: null });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'signed-out',
+      userId: null,
+      reason: 'signed-out',
+    });
 
     el = { state: 'expired' };
-    assert.deepEqual(getHeaderAuth(), { state: 'signed-out', userId: null });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'signed-out',
+      userId: null,
+      reason: 'expired',
+    });
 
     el = { state: 'error' };
-    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'loading',
+      userId: null,
+      reason: null,
+    });
 
     el = {};
-    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'loading',
+      userId: null,
+      reason: null,
+    });
 
     el = { state: 'weird' };
-    assert.deepEqual(getHeaderAuth(), { state: 'loading', userId: null });
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'loading',
+      userId: null,
+      reason: null,
+    });
   } finally {
     restoreDocument(originalDocument);
   }
@@ -617,4 +655,208 @@ test('resolveLocalForUser clears unsynced edit owned by another user', () => {
     }),
     '2026-07-01',
   );
+});
+
+test('confirmSessionGone returns confirmed on 401, alive on 200, unknown on 5xx/throw/timeout, and sends credentials include to /api/auth/me', async () => {
+  const calls = [];
+  const res401 = await confirmSessionGone({
+    fetchImpl: async (url, init) => {
+      calls.push({ url, init });
+      return jsonResponse(401, {});
+    },
+  });
+  assert.equal(res401, 'confirmed');
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].url.endsWith('/api/auth/me'));
+  assert.equal(calls[0].init.credentials, 'include');
+
+  assert.equal(
+    await confirmSessionGone({
+      fetchImpl: async () => jsonResponse(200, { id: 'u1' }),
+    }),
+    'alive',
+  );
+
+  assert.equal(
+    await confirmSessionGone({
+      fetchImpl: async () => jsonResponse(500, {}),
+    }),
+    'unknown',
+  );
+
+  assert.equal(
+    await confirmSessionGone({
+      fetchImpl: async () => jsonResponse(503, {}),
+    }),
+    'unknown',
+  );
+
+  assert.equal(
+    await confirmSessionGone({
+      fetchImpl: async () => {
+        throw new Error('network error');
+      },
+    }),
+    'unknown',
+  );
+
+  let clearedId = null;
+  const resTimeout = await confirmSessionGone({
+    timeoutMs: 100,
+    setTimer: (fn) => {
+      fn();
+      return 42;
+    },
+    clearTimer: (id) => {
+      clearedId = id;
+    },
+    fetchImpl: (_url, init) =>
+      new Promise((_resolve, reject) => {
+        if (init?.signal?.aborted) {
+          reject(new Error('aborted'));
+          return;
+        }
+        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+      }),
+  });
+  assert.equal(resTimeout, 'unknown');
+  assert.equal(clearedId, 42);
+});
+
+test('decideSessionEnd matrix covers logout, expired, and signed-out with confirm results', () => {
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'logout',
+      confirm: 'alive',
+      hasUnconfirmedEdit: false,
+    }),
+    'clear',
+  );
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'logout',
+      confirm: 'unknown',
+      hasUnconfirmedEdit: true,
+    }),
+    'clear',
+  );
+
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'expired',
+      hasUnconfirmedEdit: false,
+    }),
+    'clear',
+  );
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'expired',
+      hasUnconfirmedEdit: true,
+    }),
+    'keep_notice',
+  );
+
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'signed-out',
+      confirm: 'confirmed',
+      hasUnconfirmedEdit: false,
+    }),
+    'clear',
+  );
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'signed-out',
+      confirm: 'confirmed',
+      hasUnconfirmedEdit: true,
+    }),
+    'keep_notice',
+  );
+
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'signed-out',
+      confirm: 'unknown',
+      hasUnconfirmedEdit: false,
+    }),
+    'keep',
+  );
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'signed-out',
+      confirm: 'unknown',
+      hasUnconfirmedEdit: true,
+    }),
+    'keep',
+  );
+
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'signed-out',
+      confirm: 'alive',
+      hasUnconfirmedEdit: false,
+    }),
+    'keep',
+  );
+  assert.equal(
+    decideSessionEnd({
+      trigger: 'signed-out',
+      confirm: 'alive',
+      hasUnconfirmedEdit: true,
+    }),
+    'keep',
+  );
+});
+
+test('getHeaderAuth includes reason for expired, signed-out, and error', () => {
+  const originalDocument = globalThis.document;
+  let el = null;
+  try {
+    globalThis.document = { querySelector: () => el, cookie: '' };
+
+    el = { state: 'expired' };
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'signed-out',
+      userId: null,
+      reason: 'expired',
+    });
+
+    el = { state: 'signed-out' };
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'signed-out',
+      userId: null,
+      reason: 'signed-out',
+    });
+
+    el = { state: 'error' };
+    assert.deepEqual(getHeaderAuth(), {
+      state: 'loading',
+      userId: null,
+      reason: null,
+    });
+  } finally {
+    restoreDocument(originalDocument);
+  }
+});
+
+test('onHeaderLogout calls back on yh-logout event and stops after unsubscribe', () => {
+  const originalDocument = globalThis.document;
+  try {
+    const docStub = new EventTarget();
+    globalThis.document = docStub;
+
+    let count = 0;
+    const unsubscribe = onHeaderLogout(() => {
+      count += 1;
+    });
+
+    docStub.dispatchEvent(new Event('yh-logout'));
+    assert.equal(count, 1);
+
+    unsubscribe();
+    docStub.dispatchEvent(new Event('yh-logout'));
+    assert.equal(count, 1);
+  } finally {
+    restoreDocument(originalDocument);
+  }
 });

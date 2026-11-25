@@ -63,6 +63,22 @@ export function shouldClearOnSignOut({ prevState, nextState, owner }) {
   return false;
 }
 
+export function decideSessionEnd({ trigger, confirm, hasUnconfirmedEdit }) {
+  if (trigger === 'logout') {
+    return 'clear';
+  }
+  if (trigger === 'expired') {
+    return hasUnconfirmedEdit ? 'keep_notice' : 'clear';
+  }
+  if (trigger === 'signed-out') {
+    if (confirm === 'confirmed') {
+      return hasUnconfirmedEdit ? 'keep_notice' : 'clear';
+    }
+    return 'keep';
+  }
+  return 'keep';
+}
+
 export function resolveLocalForUser({ local, owner, userId }) {
   if (typeof owner === 'string' && owner.length > 0 && owner !== userId) {
     return '';

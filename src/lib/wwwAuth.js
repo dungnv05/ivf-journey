@@ -88,7 +88,7 @@ export function getHeaderAuth() {
       : null;
 
   if (!el) {
-    return { state: 'loading', userId: null };
+    return { state: 'loading', userId: null, reason: null };
   }
 
   if (
@@ -96,14 +96,18 @@ export function getHeaderAuth() {
     typeof el.user?.id === 'string' &&
     el.user.id.length > 0
   ) {
-    return { state: 'signed-in', userId: el.user.id };
+    return { state: 'signed-in', userId: el.user.id, reason: null };
   }
 
-  if (el.state === 'signed-out' || el.state === 'expired') {
-    return { state: 'signed-out', userId: null };
+  if (el.state === 'signed-out') {
+    return { state: 'signed-out', userId: null, reason: 'signed-out' };
   }
 
-  return { state: 'loading', userId: null };
+  if (el.state === 'expired') {
+    return { state: 'signed-out', userId: null, reason: 'expired' };
+  }
+
+  return { state: 'loading', userId: null, reason: null };
 }
 
 export function onHeaderAuthChange(cb) {
@@ -134,4 +138,67 @@ export function onHeaderAuthChange(cb) {
     active = false;
     document.removeEventListener('yh-auth-change', handler);
   };
+}
+
+export function onHeaderLogout(cb) {
+  if (typeof document === 'undefined' || typeof cb !== 'function') {
+    return () => {};
+  }
+
+  let active = true;
+  const handler = () => {
+    if (active) cb();
+  };
+
+  document.addEventListener('yh-logout', handler);
+
+  return () => {
+    active = false;
+    document.removeEventListener('yh-logout', handler);
+  };
+}
+
+export async function confirmSessionGone({
+  fetchImpl = globalThis.fetch,
+  timeoutMs = 8000,
+  setTimer = setTimeout,
+  clearTimer = clearTimeout,
+} = {}) {
+  if (typeof fetchImpl !== 'function') {
+    return 'unknown';
+  }
+
+  const controller =
+    typeof AbortController === 'function' ? new AbortController() : null;
+  let timedOut = false;
+  const timerId =
+    controller && typeof setTimer === 'function'
+      ? setTimer(() => {
+          timedOut = true;
+          controller.abort();
+        }, timeoutMs)
+      : null;
+
+  try {
+    const response = await fetchImpl(`${WWW_ORIGIN}/api/auth/me`, {
+      credentials: 'include',
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    if (timedOut || !response || typeof response.status !== 'number') {
+      return 'unknown';
+    }
+    if (response.status === 401) {
+      return 'confirmed';
+    }
+    if (response.status === 200) {
+      return 'alive';
+    }
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  } finally {
+    if (timerId !== null && typeof clearTimer === 'function') {
+      clearTimer(timerId);
+    }
+  }
 }
