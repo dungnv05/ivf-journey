@@ -11,18 +11,18 @@
 }
 
 .diet-section {
-  background: white;
+  background: var(--surface);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-lg);
 }
 
 .dos-section {
-  border-top: 6px solid #10b981;
+  border-top: 6px solid var(--success);
 }
 
 .donts-section {
-  border-top: 6px solid #ef4444;
+  border-top: 6px solid var(--danger);
 }
 
 .section-header {
@@ -44,15 +44,15 @@
 }
 
 .diet-card {
-  background: #f8fafc;
+  background: var(--surface-subtle);
   padding: 1.5rem;
   border-radius: 12px;
-  border-left: 4px solid #10b981;
+  border-left: 4px solid var(--success);
 }
 
 .danger-card {
-  border-left: 4px solid #ef4444;
-  background: #fef2f2;
+  border-left: 4px solid var(--danger);
+  background: var(--danger-light);
 }
 
 .diet-card h3 {
@@ -79,5 +79,5 @@
 
 .cta-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
+  box-shadow: var(--shadow-cta);
 }

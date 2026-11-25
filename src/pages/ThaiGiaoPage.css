@@ -31,26 +31,26 @@
 }
 
 .tg-page.tg-reading-dark {
-  --tg-bg: #0b1120;
-  --tg-surface: #131c31;
-  --tg-surface-subtle: #1e293b;
-  --tg-border: #334155;
-  --tg-border-strong: #475569;
-  --tg-text-strong: #f8fafc;
-  --tg-text-body: #e2e8f0;
-  --tg-text-muted: #cbd5e1;
-  --tg-accent: #f472b6;
-  --tg-accent-dark: #fbcfe8;
-  --tg-accent-soft: rgba(244, 114, 182, 0.16);
-  --tg-info: #38bdf8;
-  --tg-info-dark: #bae6fd;
-  --tg-info-soft: rgba(56, 189, 248, 0.16);
-  --tg-success: #34d399;
-  --tg-success-dark: #a7f3d0;
-  --tg-success-soft: rgba(52, 211, 153, 0.16);
-  --tg-warning: #fbbf24;
-  --tg-warning-soft: rgba(251, 191, 36, 0.14);
-  --tg-focus: #38bdf8;
+  --tg-bg: var(--dark-background);
+  --tg-surface: var(--dark-surface);
+  --tg-surface-subtle: var(--dark-surface-subtle);
+  --tg-border: var(--dark-border-subtle);
+  --tg-border-strong: var(--dark-border-strong);
+  --tg-text-strong: var(--dark-text-dark);
+  --tg-text-body: var(--dark-text-body);
+  --tg-text-muted: var(--dark-text-muted);
+  --tg-accent: var(--dark-primary);
+  --tg-accent-dark: var(--dark-primary-dark);
+  --tg-accent-soft: var(--dark-primary-light);
+  --tg-info: var(--dark-secondary);
+  --tg-info-dark: var(--dark-secondary-dark);
+  --tg-info-soft: var(--dark-secondary-light);
+  --tg-success: var(--dark-success);
+  --tg-success-dark: var(--dark-success-dark);
+  --tg-success-soft: var(--dark-success-light);
+  --tg-warning: var(--dark-warning);
+  --tg-warning-soft: var(--dark-warning-light);
+  --tg-focus: var(--dark-focus-ring);
   color-scheme: dark;
 }
 
@@ -395,23 +395,23 @@
 .tg-control-btn-active {
   background: var(--tg-accent);
   border-color: var(--tg-accent);
-  color: #ffffff;
+  color: var(--on-primary);
 }
 
 .tg-reading-dark .tg-control-btn-active {
   background: var(--tg-accent);
   border-color: var(--tg-accent);
-  color: #0b1120;
+  color: var(--dark-on-primary);
 }
 
 .tg-control-btn-speaking {
   background: var(--tg-info);
   border-color: var(--tg-info);
-  color: #ffffff;
+  color: var(--on-primary);
 }
 
 .tg-reading-dark .tg-control-btn-speaking {
-  color: #0b1120;
+  color: var(--dark-on-primary);
 }
 
 .tg-read-toggle-btn {
@@ -440,22 +440,22 @@
 .tg-read-toggle-btn-done {
   background: var(--tg-success);
   border-color: var(--tg-success);
-  color: #ffffff;
+  color: var(--on-primary);
 }
 
 .tg-reading-dark .tg-read-toggle-btn-done {
-  color: #0b1120;
+  color: var(--dark-on-primary);
 }
 
 .tg-read-toggle-btn-done:hover {
   background: var(--tg-success-dark);
   border-color: var(--tg-success-dark);
-  color: #ffffff;
+  color: var(--on-primary);
 }
 
 .tg-reading-dark .tg-read-toggle-btn-done:hover {
   background: var(--tg-success-dark);
-  color: #0b1120;
+  color: var(--dark-on-primary);
 }
 
 /* Story Header */
@@ -479,13 +479,13 @@
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   background: var(--tg-accent);
-  color: #ffffff;
+  color: var(--on-primary);
   font-size: var(--text-xs);
   font-weight: 700;
 }
 
 .tg-reading-dark .tg-story-badge {
-  color: #0b1120;
+  color: var(--dark-on-primary);
 }
 
 .tg-story-time {
@@ -756,7 +756,7 @@
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-full);
   background: var(--tg-accent);
-  color: #ffffff;
+  color: var(--on-primary);
   text-decoration: none;
   font-size: var(--text-base);
   font-weight: 700;
@@ -764,7 +764,7 @@
 }
 
 .tg-reading-dark .tg-primary-btn {
-  color: #0b1120;
+  color: var(--dark-on-primary);
 }
 
 .tg-primary-btn:hover {
@@ -847,11 +847,11 @@
 .tg-week-tab-btn-active {
   background: var(--tg-accent);
   border-color: var(--tg-accent);
-  color: #ffffff;
+  color: var(--on-primary);
 }
 
 .tg-reading-dark .tg-week-tab-btn-active {
-  color: #0b1120;
+  color: var(--dark-on-primary);
 }
 
 .tg-week-tab-title {
