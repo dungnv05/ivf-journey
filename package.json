@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "validate": "node scripts/validate-stories.mjs",
-    "test": "node --test tests/due-date-sync.test.mjs tests/due-date-sync-page.test.mjs"
+    "test": "node --test tests/due-date-sync.test.mjs tests/due-date-sync-page.test.mjs tests/favicon.test.mjs"
   },
   "dependencies": {
     "@fontsource/manrope": "5.3.0",
